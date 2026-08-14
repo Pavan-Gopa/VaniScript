@@ -1,0 +1,1112 @@
+{
+  "version": 5,
+  "description": "VaniScript QA suite manifest. Order: build gates, MCP smoke, Q7, A1–A7 API_USAGE, CPS cloud-provider-stabilization, LASR-01 local-ASR contracts.",
+  "scripts": [
+    {
+      "path": "build_gate_as.sh",
+      "kind": "build-gate",
+      "area": "AppleSilicon build/test",
+      "enabled": true,
+      "note": "swift test (fallback swift build). Must be green every QA run."
+    },
+    {
+      "path": "build_gate_electron.sh",
+      "kind": "build-gate",
+      "area": "Electron compile",
+      "enabled": true,
+      "note": "npm run compile (tsc --noEmit). Skips gracefully if node_modules absent (reports SKIP, not FAIL)."
+    },
+    {
+      "path": "mcp_smoke_as.sh",
+      "kind": "mcp-smoke",
+      "area": "MCP server SSE :19790 + contracts",
+      "enabled": true,
+      "note": "Deterministic STATIC smoke: mcp_bridge.py binds PORT 19790 + SSE; McpContracts defaultEndpoint 19790. No live probe (keeps suite idempotent/non-flaky)."
+    },
+    {
+      "path": "q7_acceptance_all_checked.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 acceptance checklist",
+      "enabled": true,
+      "note": "QWEN_MCP_ACCEPTANCE.md: all [x], no [ ], verdict 'ИТОГ: [PASS]'."
+    },
+    {
+      "path": "q7_acceptance_3_surfaces.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 acceptance checklist",
+      "enabled": true,
+      "note": "Acceptance documents 3 surfaces: External Qwen MCP, Apple Silicon embedded, Electron embedded."
+    },
+    {
+      "path": "q7_acceptance_real_paths.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 acceptance checklist",
+      "enabled": true,
+      "note": "Acceptance filled with real values: 19790, 19789, qwen3.8-max-preview, /Users/pavan/.local/bin/qwen."
+    },
+    {
+      "path": "q7_acceptance_invariants.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 acceptance checklist",
+      "enabled": true,
+      "note": "Acceptance restates invariants: no silent fallback, token, vaniscript_embedded, Codex/Grok."
+    },
+    {
+      "path": "q7_readme_qwen_provider.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 README",
+      "enabled": true,
+      "note": "README.md lists Qwen as a provider (- **Qwen** bullet)."
+    },
+    {
+      "path": "q7_readme_no_rewrite.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 README",
+      "enabled": true,
+      "note": "README.md original sections preserved: Direction, Local Run (extend, not rewrite)."
+    },
+    {
+      "path": "q7_mcp_instructions_qwen.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 MCP_INSTRUCTIONS",
+      "enabled": true,
+      "note": "MCP_INSTRUCTIONS.md Qwen section current: External Qwen CLI, 19790, 19789."
+    },
+    {
+      "path": "q7_mcp_instructions_no_electron.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 MCP_INSTRUCTIONS / BUG-002",
+      "enabled": true,
+      "note": "BUG-002 invariant: grep -ci electron MCP_INSTRUCTIONS.md == 0."
+    },
+    {
+      "path": "q7_decisions_adr_done.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 DECISIONS",
+      "enabled": true,
+      "note": "DECISIONS.md records QWEN_MCP track complete + QWEN_DONE."
+    },
+    {
+      "path": "q7_decisions_adr_format.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 DECISIONS",
+      "enabled": true,
+      "note": "ADR id format D-2026-07-26-Q7 (or equivalent D-<date>-Q7)."
+    },
+    {
+      "path": "q7_doc_only_no_code.sh",
+      "kind": "q7-doc-delta",
+      "area": "Q7 doc-only gate",
+      "enabled": true,
+      "note": "Pending diff under AppleSilicon/ has no .swift/.js/.ts/.py code (doc-only). STEP-AWARE: only enforced for doc-only steps (Q5/Q7/A8 per STATE.yaml current_step); N/A (PASS) for code steps like A2."
+    },
+    {
+      "path": "q7_swift_test_green.sh",
+      "kind": "q7-regression",
+      "area": "Q7 swift test regression",
+      "enabled": true,
+      "note": "swift test: 0 failures, non-empty run; soft-warn if executed count < 267."
+    },
+    {
+      "path": "a1_catalog_fixed_order.sh",
+      "kind": "a1-delta",
+      "area": "CloudProviderCatalog",
+      "enabled": true,
+      "note": "A1 validation: providerOrder fixed order."
+    },
+    {
+      "path": "a1_appsettings_decode_if_present.sh",
+      "kind": "a1-delta",
+      "area": "AppSettings",
+      "enabled": true,
+      "note": "A1 validation: new fields use decodeIfPresent."
+    },
+    {
+      "path": "a1_provider_usage_decode_if_present.sh",
+      "kind": "a1-delta",
+      "area": "ProviderUsage",
+      "enabled": true,
+      "note": "A1 validation: new fields use decodeIfPresent."
+    },
+    {
+      "path": "a1_catalog_no_network.sh",
+      "kind": "a1-delta",
+      "area": "CloudProviderCatalog",
+      "enabled": true,
+      "note": "A1 validation: no network calls in catalog."
+    },
+    {
+      "path": "a1_appsettings_defaults.sh",
+      "kind": "a1-delta",
+      "area": "AppSettings",
+      "enabled": true,
+      "note": "A1 validation: text model defaults."
+    },
+    {
+      "path": "a2_usagerecorder_purity.sh",
+      "kind": "a2-delta",
+      "area": "UsageRecorder",
+      "enabled": true,
+      "note": "A2: UsageRecorder is a pure, non-throwing VaniScriptCore enum (no I/O, no UI)."
+    },
+    {
+      "path": "a2_tokenusage_type.sh",
+      "kind": "a2-delta",
+      "area": "UsageRecorder",
+      "enabled": true,
+      "note": "A2: TokenUsage public struct, Equatable+Sendable, isEmpty, `+` operator."
+    },
+    {
+      "path": "a2_record_aggregation.sh",
+      "kind": "a2-delta",
+      "area": "UsageRecorder",
+      "enabled": true,
+      "note": "A2: record() increments sessions/input/output/audio and refreshes last* fields."
+    },
+    {
+      "path": "a2_record_per_model_key.sh",
+      "kind": "a2-delta",
+      "area": "UsageRecorder",
+      "enabled": true,
+      "note": "A2: per-model key providerId:model (§6.2) with blank-model fallback."
+    },
+    {
+      "path": "a2_record_besteffort_noop.sh",
+      "kind": "a2-delta",
+      "area": "UsageRecorder",
+      "enabled": true,
+      "note": "A2: record() no-op when nil/empty delta and no audio (§14.4 best-effort)."
+    },
+    {
+      "path": "a2_parser_gemini.sh",
+      "kind": "a2-delta",
+      "area": "UsageRecorder parsers",
+      "enabled": true,
+      "note": "A2: parseGeminiUsage reads usageMetadata.prompt/candidatesTokenCount, nil on empty."
+    },
+    {
+      "path": "a2_parser_openai.sh",
+      "kind": "a2-delta",
+      "area": "UsageRecorder parsers",
+      "enabled": true,
+      "note": "A2: parseOpenAIUsage reads usage.prompt_tokens/completion_tokens (snake_case)."
+    },
+    {
+      "path": "a2_parsers_lenient_nil.sh",
+      "kind": "a2-delta",
+      "area": "UsageRecorder parsers",
+      "enabled": true,
+      "note": "A2: both parsers lenient (try?, optional, nil on missing block, non-throwing)."
+    },
+    {
+      "path": "a2_transcription_result_usage.sh",
+      "kind": "a2-delta",
+      "area": "CloudAudioTranscriptionEngine",
+      "enabled": true,
+      "note": "A2: transcription result carries usage: TokenUsage? from Gemini+OpenAI paths. (Pipeline wiring deferred A5/A6 — scope OK.)"
+    },
+    {
+      "path": "a2_translation_accumulator.sh",
+      "kind": "a2-delta",
+      "area": "CloudTextTranslationEngine",
+      "enabled": true,
+      "note": "A2: actor accumulator + takeLastUsage() read-and-reset; generate* feeds parsed usage."
+    },
+    {
+      "path": "a2_workflowstore_record.sh",
+      "kind": "a2-delta",
+      "area": "WorkflowStore",
+      "enabled": true,
+      "note": "A2: recordCloudTranslationUsage folds takeLastUsage() into settings.usage at >=4 call sites."
+    },
+    {
+      "path": "a2_workflowstore_normalized_id.sh",
+      "kind": "a2-delta",
+      "area": "WorkflowStore",
+      "enabled": true,
+      "note": "A2: normalizedUsageProviderId gemini-cloud->gemini, gpt-cloud->openai, default passthrough."
+    },
+    {
+      "path": "a2_workflowstore_besteffort.sh",
+      "kind": "a2-delta",
+      "area": "WorkflowStore",
+      "enabled": true,
+      "note": "A2: recordCloudTranslationUsage is async, non-throwing, best-effort (§14.4)."
+    },
+    {
+      "path": "a2_tests_present.sh",
+      "kind": "a2-delta",
+      "area": "UsageRecorderTests",
+      "enabled": true,
+      "note": "A2: UsageRecorderTests (A2) suite present, @testable import, exactly 14 @Test."
+    },
+    {
+      "path": "a2_tests_coverage_areas.sh",
+      "kind": "a2-delta",
+      "area": "UsageRecorderTests",
+      "enabled": true,
+      "note": "A2: 14 tests cover record/last*/per-model/best-effort/parsers/round-trip/arithmetic."
+    },
+    {
+      "path": "a2_decisions_adr.sh",
+      "kind": "a2-delta",
+      "area": "DECISIONS",
+      "enabled": true,
+      "note": "A2: ADR D-2026-07-26-A2 (usage recording, §14.4, scope note, 287 tests)."
+    },
+    {
+      "path": "a2_no_keys_in_source.sh",
+      "kind": "a2-delta",
+      "area": "Security",
+      "enabled": true,
+      "note": "A2: no hardcoded API keys/tokens in A2 sources or tests (§14.7)."
+    },
+    {
+      "path": "a2_appsettings_usage_migration_safe.sh",
+      "kind": "a2-delta",
+      "area": "AppSettings",
+      "enabled": true,
+      "note": "A2: settings.usage decodeIfPresent ?? [:] migration-safe; ProviderUsage last* intact (§14.1 + A1 regression)."
+    },
+    {
+      "path": "a2_swift_test_green.sh",
+      "kind": "a2-regression",
+      "area": "A2 swift test gate",
+      "enabled": true,
+      "note": "A2: swift test green, 0 failures, soft-warn < 287; env-only sandbox errors reported as ENV-ONLY (not product FAIL)."
+    },
+    {
+      "path": "a3_selected_provider_default.sh",
+      "kind": "a3-delta",
+      "area": "SettingsView state",
+      "enabled": true,
+      "note": "A3: selectedProviderId defaults to CloudProviderCatalog.geminiID."
+    },
+    {
+      "path": "a3_picker_uses_catalog.sh",
+      "kind": "a3-delta",
+      "area": "SettingsView apiKeysTab",
+      "enabled": true,
+      "note": "A3: Provider Picker ForEach(CloudProviderCatalog.providers) — catalog order."
+    },
+    {
+      "path": "a3_single_card_at_a_time.sh",
+      "kind": "a3-delta",
+      "area": "SettingsView apiKeysTab",
+      "enabled": true,
+      "note": "A3: only one provider card at a time; no always-expanded Gemini/OpenAI/Anthropic sections."
+    },
+    {
+      "path": "a3_api_keys_tab_structure.sh",
+      "kind": "a3-delta",
+      "area": "SettingsView apiKeysTab",
+      "enabled": true,
+      "note": "A3: apiKeysTab structure = Cloud Provider picker → conditional card → stats."
+    },
+    {
+      "path": "a3_custom_path_intact.sh",
+      "kind": "a3-delta",
+      "area": "SettingsView Custom",
+      "enabled": true,
+      "note": "A3: Custom path retains add/remove and is gated by customID."
+    },
+    {
+      "path": "a3_provider_card_location.sh",
+      "kind": "a3-delta",
+      "area": "ProviderCardView",
+      "enabled": true,
+      "note": "A3: ProviderCardView defined in SettingsView or own file (both OK)."
+    },
+    {
+      "path": "a3_engine_ids_preserved.sh",
+      "kind": "a3-delta",
+      "area": "ProviderCardView engines",
+      "enabled": true,
+      "note": "A3: engine ids gemini-cloud/gpt-cloud/coreml-whisperkit/mlx-native preserved."
+    },
+    {
+      "path": "a3_gemini_openai_parity.sh",
+      "kind": "a3-delta",
+      "area": "ProviderCardView Gemini/OpenAI",
+      "enabled": true,
+      "note": "A3: Gemini/OpenAI key + ReadOnlyRow + budget Slider + Transcribing/Translation toggles."
+    },
+    {
+      "path": "a3_anthropic_card.sh",
+      "kind": "a3-delta",
+      "area": "ProviderCardView Anthropic",
+      "enabled": true,
+      "note": "A3: Anthropic key + ReadOnlyRow model."
+    },
+    {
+      "path": "a3_coming_soon_stub.sh",
+      "kind": "a3-delta",
+      "area": "ProviderCardView stubs",
+      "enabled": true,
+      "note": "A3: Qwen/OpenRouter/Ollama coming-soon stub via default case."
+    },
+    {
+      "path": "a3_stub_key_fields.sh",
+      "kind": "a3-delta",
+      "area": "ProviderCardView AppSettings",
+      "enabled": true,
+      "note": "A3: stubs map to qwenApiKey/openrouterApiKey/ollamaCloudApiKey."
+    },
+    {
+      "path": "a3_get_api_key_url_descriptor.sh",
+      "kind": "a3-delta",
+      "area": "ProviderCardView catalog SSOT",
+      "enabled": true,
+      "note": "A3: Get API Key URL from descriptor.getApiKeyURL."
+    },
+    {
+      "path": "a3_stats_section_unchanged.sh",
+      "kind": "a3-delta",
+      "area": "Cloud Usage Statistics",
+      "enabled": true,
+      "note": "A3: Cloud Usage Statistics section still present (A6 territory)."
+    },
+    {
+      "path": "a3_no_a4_validation_or_model_net.sh",
+      "kind": "a3-delta",
+      "area": "A3 out-of-scope A4",
+      "enabled": true,
+      "note": "A3: no CloudKeyValidator/CloudModelCatalog/network model listing."
+    },
+    {
+      "path": "a3_no_a5_engine_routing.sh",
+      "kind": "a3-delta",
+      "area": "A3 out-of-scope A5",
+      "enabled": true,
+      "note": "A3: no engine routing for qwen/openrouter/ollama in ProviderCardView."
+    },
+    {
+      "path": "a3_switch_covers_catalog_ids.sh",
+      "kind": "a3-delta",
+      "area": "Catalog + SettingsView IDs",
+      "enabled": true,
+      "note": "A3: catalog IDs referenced; fixed A1 order intact."
+    },
+    {
+      "path": "a3_scope_no_engine_usage_changes.sh",
+      "kind": "a3-delta",
+      "area": "A3 UI-only scope",
+      "enabled": true,
+      "note": "A3: no A5-like provider routing in WorkflowStore normalizedUsageProviderId."
+    },
+    {
+      "path": "a3_no_hardcoded_api_keys.sh",
+      "kind": "a3-delta",
+      "area": "Security §14.7",
+      "enabled": true,
+      "note": "A3: no hardcoded API key literals in SettingsView."
+    },
+    {
+      "path": "a3_feedback_approved.sh",
+      "kind": "a3-delta",
+      "area": "FEEDBACK",
+      "enabled": true,
+      "note": "A3: FEEDBACK.md Verifier [APPROVED] with handoff claims."
+    },
+    {
+      "path": "a3_state_yaml_a3.sh",
+      "kind": "a3-delta",
+      "area": "STATE.yaml",
+      "enabled": true,
+      "note": "A3: current_step A3; implementation+review approved."
+    },
+    {
+      "path": "a3_swift_build_green.sh",
+      "kind": "a3-regression",
+      "area": "A3 swift build gate",
+      "enabled": true,
+      "note": "A3: swift build green; ENV-ONLY sandbox soft-pass."
+    },
+    {
+      "path": "a4_key_validator_status_map.sh",
+      "kind": "a4-delta",
+      "area": "CloudKeyValidator status map",
+      "enabled": true,
+      "note": "A4: idle/checking/valid/invalid; 2xx/401/403/429/other HTTP map."
+    },
+    {
+      "path": "a4_key_validator_empty_custom.sh",
+      "kind": "a4-delta",
+      "area": "CloudKeyValidator empty/custom",
+      "enabled": true,
+      "note": "A4: empty key → idle; custom → valid without network."
+    },
+    {
+      "path": "a4_key_validator_uses_list_request.sh",
+      "kind": "a4-delta",
+      "area": "CloudKeyValidator listRequest",
+      "enabled": true,
+      "note": "A4: validate via CloudModelCatalog.listRequest + fetcher."
+    },
+    {
+      "path": "a4_catalog_parsers.sh",
+      "kind": "a4-delta",
+      "area": "CloudModelCatalog parsers",
+      "enabled": true,
+      "note": "A4: OpenAI/Gemini/Ollama/Anthropic parsers + unit tests."
+    },
+    {
+      "path": "a4_catalog_dedup.sh",
+      "kind": "a4-delta",
+      "area": "CloudModelCatalog dedup",
+      "enabled": true,
+      "note": "A4: de-dupe + empty drop; unit test."
+    },
+    {
+      "path": "a4_catalog_list_request_auth.sh",
+      "kind": "a4-delta",
+      "area": "CloudModelCatalog listRequest auth",
+      "enabled": true,
+      "note": "A4: Gemini key=, Bearer, Anthropic x-api-key, Ollama tags."
+    },
+    {
+      "path": "a4_catalog_session_cache_fingerprint.sh",
+      "kind": "a4-delta",
+      "area": "CloudModelCatalog cache fingerprint",
+      "enabled": true,
+      "note": "A4: session cache + keyFingerprint (no raw secret) + invalidate."
+    },
+    {
+      "path": "a4_catalog_fetcher_injectable.sh",
+      "kind": "a4-delta",
+      "area": "CloudHTTPFetcher injectable",
+      "enabled": true,
+      "note": "A4: injectable fetcher on catalog + validator; tests mock."
+    },
+    {
+      "path": "a4_settings_cloud_key_model_row.sh",
+      "kind": "a4-delta",
+      "area": "SettingsView CloudKeyModelRow",
+      "enabled": true,
+      "note": "A4: badge + Picker/editable+Retry for Gemini/OpenAI."
+    },
+    {
+      "path": "a4_settings_writes_text_models.sh",
+      "kind": "a4-delta",
+      "area": "Settings model bindings",
+      "enabled": true,
+      "note": "A4: writes geminiTextModel / openaiTextModel."
+    },
+    {
+      "path": "a4_settings_debounce.sh",
+      "kind": "a4-delta",
+      "area": "UI debounce",
+      "enabled": true,
+      "note": "A4: .task(id: apiKey) + 500ms debounce."
+    },
+    {
+      "path": "a4_transcription_resolve_gemini_settings.sh",
+      "kind": "a4-delta",
+      "area": "Transcription resolve",
+      "enabled": true,
+      "note": "A4: Gemini from settings; whisper-1 OK deferred."
+    },
+    {
+      "path": "a4_translation_resolve_settings_fallback.sh",
+      "kind": "a4-delta",
+      "area": "Translation resolve",
+      "enabled": true,
+      "note": "A4: gemini/openai settings + hardcode fallbacks."
+    },
+    {
+      "path": "a4_tests_present.sh",
+      "kind": "a4-delta",
+      "area": "A4 unit tests present",
+      "enabled": true,
+      "note": "A4: CloudKeyValidatorTests + CloudModelCatalogTests suites."
+    },
+    {
+      "path": "a4_no_keys_in_source.sh",
+      "kind": "a4-delta",
+      "area": "Security §14.7",
+      "enabled": true,
+      "note": "A4: no sk-/AIza secret literals."
+    },
+    {
+      "path": "a4_no_a5_engine_routing.sh",
+      "kind": "a4-delta",
+      "area": "A4 out-of-scope A5",
+      "enabled": true,
+      "note": "A4: no qwen/openrouter/ollama engine routing."
+    },
+    {
+      "path": "a4_no_a6_stats_rewrite.sh",
+      "kind": "a4-delta",
+      "area": "A4 out-of-scope A6",
+      "enabled": true,
+      "note": "A4: Cloud Usage Statistics section not rewritten."
+    },
+    {
+      "path": "a4_anthropic_readonly_whisper_ok.sh",
+      "kind": "a4-delta",
+      "area": "Verifier scope OK",
+      "enabled": true,
+      "note": "A4: Anthropic ReadOnly + whisper-1 deferred — not bugs."
+    },
+    {
+      "path": "a4_feedback_approved.sh",
+      "kind": "a4-delta",
+      "area": "FEEDBACK",
+      "enabled": true,
+      "note": "A4: FEEDBACK.md Verifier [APPROVED]."
+    },
+    {
+      "path": "a4_state_yaml_a4.sh",
+      "kind": "a4-delta",
+      "area": "STATE.yaml",
+      "enabled": true,
+      "note": "A4: current_step A4; implementation+review approved."
+    },
+    {
+      "path": "a4_swift_test_green.sh",
+      "kind": "a4-regression",
+      "area": "A4 swift test gate",
+      "enabled": true,
+      "note": "A4: swift test green ≥308 soft-warn; ENV-ONLY soft-pass."
+    },
+    {
+      "path": "a5_registry_translation_gating.sh",
+      "kind": "a5-delta",
+      "area": "ProviderRegistry translation",
+      "enabled": true,
+      "note": "A5: translation options qwen/openrouter/ollama-cloud when key set."
+    },
+    {
+      "path": "a5_registry_no_transcription.sh",
+      "kind": "a5-delta",
+      "area": "ProviderRegistry transcription",
+      "enabled": true,
+      "note": "A5: supportsTranscription=false → no transcription options for the three."
+    },
+    {
+      "path": "a5_cloud_chat_router_endpoints.sh",
+      "kind": "a5-delta",
+      "area": "CloudChatRouter endpoints",
+      "enabled": true,
+      "note": "A5: DashScope/OpenRouter/Ollama /v1 chat/completions + Bearer."
+    },
+    {
+      "path": "a5_cloud_chat_router_model_fallback.sh",
+      "kind": "a5-delta",
+      "area": "CloudChatRouter model",
+      "enabled": true,
+      "note": "A5: settings model override vs catalog default; blank key → nil."
+    },
+    {
+      "path": "a5_translation_engine_routing.sh",
+      "kind": "a5-delta",
+      "area": "CloudTextTranslationEngine",
+      "enabled": true,
+      "note": "A5: resolve via router; generateOpenAICompatible; parseOpenAIUsage."
+    },
+    {
+      "path": "a5_transcription_no_new_cases.sh",
+      "kind": "a5-delta",
+      "area": "CloudAudioTranscriptionEngine",
+      "enabled": true,
+      "note": "A5: NO new resolve cases for qwen/openrouter/ollama (honest)."
+    },
+    {
+      "path": "a5_settings_cloud_provider_card.sh",
+      "kind": "a5-delta",
+      "area": "SettingsView cloudProviderCard",
+      "enabled": true,
+      "note": "A5: cloudProviderCard for three providers (no coming-soon)."
+    },
+    {
+      "path": "a5_settings_key_model_budget_baseurl.sh",
+      "kind": "a5-delta",
+      "area": "SettingsView fields",
+      "enabled": true,
+      "note": "A5: CloudKeyModelRow + budget Qwen/OR + Base URL Ollama."
+    },
+    {
+      "path": "a5_settings_transcribing_disabled.sh",
+      "kind": "a5-delta",
+      "area": "SettingsView toggles",
+      "enabled": true,
+      "note": "A5: Transcribing disabled+tooltip; Translation when key."
+    },
+    {
+      "path": "a5_tests_present.sh",
+      "kind": "a5-delta",
+      "area": "A5 unit tests",
+      "enabled": true,
+      "note": "A5: ProviderRegistryCloudTests + CloudProviderRoutingTests."
+    },
+    {
+      "path": "a5_decisions_adr.sh",
+      "kind": "a5-delta",
+      "area": "DECISIONS",
+      "enabled": true,
+      "note": "A5: ADR D-2026-07-26-A5 endpoints/capabilities/ids."
+    },
+    {
+      "path": "a5_feedback_approved.sh",
+      "kind": "a5-delta",
+      "area": "FEEDBACK",
+      "enabled": true,
+      "note": "A5: FEEDBACK.md Verifier [APPROVED]."
+    },
+    {
+      "path": "a5_state_yaml_a5.sh",
+      "kind": "a5-delta",
+      "area": "STATE.yaml",
+      "enabled": true,
+      "note": "A5: current_step A5; implementation+review approved."
+    },
+    {
+      "path": "a5_no_a6_stats_no_a7_balance.sh",
+      "kind": "a5-delta",
+      "area": "A5 out-of-scope",
+      "enabled": true,
+      "note": "A5: no A6 stats rewrite; no A7 balance service."
+    },
+    {
+      "path": "a5_no_keys_in_source.sh",
+      "kind": "a5-delta",
+      "area": "Security §14.7",
+      "enabled": true,
+      "note": "A5: no sk-/AIza secret literals."
+    },
+    {
+      "path": "a5_verifier_scope_ok.sh",
+      "kind": "a5-delta",
+      "area": "Verifier scope OK",
+      "enabled": true,
+      "note": "A5: pipeline usage deferred; Ollama list base catalog."
+    },
+    {
+      "path": "a5_swift_test_green.sh",
+      "kind": "a5-regression",
+      "area": "A5 swift test gate",
+      "enabled": true,
+      "note": "A5: swift test green ≥320 soft-warn; ENV-ONLY soft-pass."
+    },
+    {
+      "path": "a6_usage_statistics_view_present.sh",
+      "kind": "a6-delta",
+      "area": "UsageStatisticsView file",
+      "enabled": true,
+      "note": "A6: UsageStatisticsView.swift present with struct + A6 markers."
+    },
+    {
+      "path": "a6_settings_wired.sh",
+      "kind": "a6-delta",
+      "area": "SettingsView wiring",
+      "enabled": true,
+      "note": "A6: apiKeysTab wires UsageStatisticsView(); old section removed; provider card intact."
+    },
+    {
+      "path": "a6_last_transaction.sh",
+      "kind": "a6-delta",
+      "area": "Last Transaction Details",
+      "enabled": true,
+      "note": "A6: max lastTransactionAt, lastModel badge, Prompt/Completion/Total."
+    },
+    {
+      "path": "a6_active_providers_summary.sh",
+      "kind": "a6-delta",
+      "area": "Active providers summary",
+      "enabled": true,
+      "note": "A6: Transcribing/Translation via providerDisplayName + legacy id normalize."
+    },
+    {
+      "path": "a6_per_model_cards.sh",
+      "kind": "a6-delta",
+      "area": "Per-model cards",
+      "enabled": true,
+      "note": "A6: N transactions, 6 metrics, estimateCost, remaining vs budget."
+    },
+    {
+      "path": "a6_disclaimer_exact.sh",
+      "kind": "a6-delta",
+      "area": "Disclaimer exact string",
+      "enabled": true,
+      "note": "A6: exact Electron disclaimer string match."
+    },
+    {
+      "path": "a6_reset_and_empty_state.sh",
+      "kind": "a6-delta",
+      "area": "Reset + empty state",
+      "enabled": true,
+      "note": "A6: Reset → usage = [:]; empty state No usage recorded yet."
+    },
+    {
+      "path": "a6_old_section_removed.sh",
+      "kind": "a6-delta",
+      "area": "Old section removed",
+      "enabled": true,
+      "note": "A6: Cloud Usage Statistics + StatItem/BudgetBar/estimateCost gone from SettingsView."
+    },
+    {
+      "path": "a6_cloud_api_usage_title.sh",
+      "kind": "a6-delta",
+      "area": "Section title",
+      "enabled": true,
+      "note": "A6: Cloud API Usage title (not old Cloud Usage Statistics sectionTitle)."
+    },
+    {
+      "path": "a6_no_a7_balance.sh",
+      "kind": "a6-delta",
+      "area": "A6 out-of-scope A7",
+      "enabled": true,
+      "note": "A6: no CloudBalanceService; no network balance in UsageStatisticsView."
+    },
+    {
+      "path": "a6_ui_only_scope.sh",
+      "kind": "a6-delta",
+      "area": "UI-only scope",
+      "enabled": true,
+      "note": "A6: UI only — engines/registry/UsageRecorder not redefined in UsageStatisticsView."
+    },
+    {
+      "path": "a6_provider_cards_intact.sh",
+      "kind": "a6-delta",
+      "area": "Provider cards intact",
+      "enabled": true,
+      "note": "A6: ProviderCardView + cloud cards still present after stats rewrite."
+    },
+    {
+      "path": "a6_no_keys_in_source.sh",
+      "kind": "a6-delta",
+      "area": "Security §14.7",
+      "enabled": true,
+      "note": "A6: no sk-/AIza secret literals in A6 sources."
+    },
+    {
+      "path": "a6_feedback_approved.sh",
+      "kind": "a6-delta",
+      "area": "FEEDBACK",
+      "enabled": true,
+      "note": "A6: FEEDBACK.md Verifier [APPROVED] with handoff claims."
+    },
+    {
+      "path": "a6_state_yaml_a6.sh",
+      "kind": "a6-delta",
+      "area": "STATE.yaml",
+      "enabled": true,
+      "note": "A6: current_step A6; implementation+review approved."
+    },
+    {
+      "path": "a6_swift_test_green.sh",
+      "kind": "a6-regression",
+      "area": "A6 swift test gate",
+      "enabled": true,
+      "note": "A6: swift test green ≥320 soft-warn; ENV-ONLY soft-pass."
+    },
+    {
+      "path": "a7_balance_service_present.sh",
+      "kind": "a7-service",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "CloudBalanceService.swift present: actor + BalanceProvider + providers + A7 markers"
+    },
+    {
+      "path": "a7_balance_info_cases.sh",
+      "kind": "a7-service",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "BalanceInfo = .usd(remaining:total:)/.planLimits(label:detail:)/.unavailable, Equatable+Sendable"
+    },
+    {
+      "path": "a7_openrouter_parsers.sh",
+      "kind": "a7-openrouter",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "GET /api/v1/credits + /api/v1/key (Bearer); pure parseCredits/parseKey; typed unparsable error"
+    },
+    {
+      "path": "a7_openrouter_mapping.sh",
+      "kind": "a7-openrouter",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "remaining = credits−usage; per-key cap min(accountRemaining,keyRemaining); total = keyLimit ?? credits"
+    },
+    {
+      "path": "a7_ollama_plan_based.sh",
+      "kind": "a7-ollama",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "OllamaCloudBalanceProvider → .planLimits('Plan-based (GPU time)'), never a fake $"
+    },
+    {
+      "path": "a7_honesty_guard_no_fetch.sh",
+      "kind": "a7-honesty",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": ".none/.estimated → nil provider → .unavailable no-fetch; empty OpenRouter key no-fetch"
+    },
+    {
+      "path": "a7_quiet_fallback.sh",
+      "kind": "a7-honesty",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "CloudBalanceError typed; balance() do/catch → .unavailable quiet; non-2xx → .requestFailed"
+    },
+    {
+      "path": "a7_ttl_cache_force.sh",
+      "kind": "a7-cache",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "TTL=60s in-memory per provider id; force bypass; invalidate(); session-only (no persistence)"
+    },
+    {
+      "path": "a7_http_fetcher_injected.sh",
+      "kind": "a7-network",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "network only via injected CloudHTTPFetcher (A4 reuse); no direct URLSession in service"
+    },
+    {
+      "path": "a7_catalog_balance_kinds.sh",
+      "kind": "a7-catalog",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "balanceKind: openrouter=.openrouterCredits, ollama=.ollamaPlan, gemini/openai/anthropic/qwen/custom=.estimated"
+    },
+    {
+      "path": "a7_settings_balance_row.sh",
+      "kind": "a7-ui",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "SettingsView CloudBalanceRow module-visible; gated to real kinds; .usd/.planLimits/'Estimated only'; lazy+Refresh"
+    },
+    {
+      "path": "a7_usage_stats_real_balance.sh",
+      "kind": "a7-ui",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "UsageStatisticsView realBalanceSection reuses CloudBalanceRow; gated by kind + configured key"
+    },
+    {
+      "path": "a7_no_fake_usd_estimated.sh",
+      "kind": "a7-honesty",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "no fake $ for .estimated providers; A6 estimated disclaimer intact; balance gated to real kinds"
+    },
+    {
+      "path": "a7_tests_present.sh",
+      "kind": "a7-tests",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "CloudBalanceServiceTests @Suite(A7): parsers/cap/Ollama/guard/quiet/cache/force on mocked network"
+    },
+    {
+      "path": "a7_no_keys_in_source.sh",
+      "kind": "a7-security",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "no sk-/AIza/ghp_/xox- secrets in A7 sources/tests (§14.7)"
+    },
+    {
+      "path": "a7_adr_present.sh",
+      "kind": "a7-docs",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "ADR D-2026-07-26-A7 with OpenRouter shapes + honesty rules + 331 tests"
+    },
+    {
+      "path": "a7_feedback_approved.sh",
+      "kind": "a7-docs",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "FEEDBACK.md A7 [APPROVED] + handoff claims"
+    },
+    {
+      "path": "a7_state_yaml_a7.sh",
+      "kind": "a7-docs",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "STATE.yaml current_step A7; implementation+review approved; target_files mention CloudBalanceService"
+    },
+    {
+      "path": "a7_swift_test_green.sh",
+      "kind": "a7-gate",
+      "area": "A7 real balance",
+      "enabled": true,
+      "note": "swift test green; soft-warn <331; ENV-ONLY soft-pass"
+    },
+    {
+      "path": "cps_acceptance_obs_registry.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_anthropic_catalog_gap.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_cloudmodel_openrouter_stt_inject.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_disclaimer_or_estimate_honesty.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_dual_provider_id_mapping.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_dynamic_model_capabilities.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_last_purpose_usage.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_no_keys_in_source.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_obs002_whitelist_includes_catalog.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_openrouter_dual_model_fields.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_openrouter_dual_ui_sections.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_provider_order_current.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_qwen_endpoint_profile_resolver.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_qwen_hardcoded_subscription_models.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_registry_transcription_dynamic.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_state_track.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "cps_usage_stats_redesign.sh",
+      "kind": "cps-delta",
+      "area": "Cloud provider stabilization / post-API_USAGE",
+      "enabled": true,
+      "note": "CPS / post-A7 product contract coverage"
+    },
+    {
+      "path": "lasr01_catalog_contracts.sh",
+      "kind": "lasr01-delta",
+      "area": "LASR-01 catalog and install-source contracts",
+      "enabled": true,
+      "note": "Required catalog types and exactly three ordered, unique LASR-01 ASR IDs."
+    },
+    {
+      "path": "lasr01_fluid_audio_pin.sh",
+      "kind": "lasr01-delta",
+      "area": "LASR-01 FluidAudio dependency pin",
+      "enabled": true,
+      "note": "FluidAudio exact 0.15.5 in Package.swift and Package.resolved; no floating requirement."
+    },
+    {
+      "path": "lasr01_capabilities.sh",
+      "kind": "lasr01-delta",
+      "area": "LASR-01 capability and source matrix",
+      "enabled": true,
+      "note": "Parakeet/Canary backend, language, auto, OS, immutable source and required-layout contracts."
+    },
+    {
+      "path": "lasr01_runtime_paths.sh",
+      "kind": "lasr01-delta",
+      "area": "LASR-01 runtimes and canonical storage",
+      "enabled": true,
+      "note": "Migration-safe local runtimes plus SharedModelsRoot Parakeet/Canary paths."
+    },
+    {
+      "path": "lasr01_remote_placeholder.sh",
+      "kind": "lasr01-delta",
+      "area": "LASR-01 Canary 1B placeholder",
+      "enabled": true,
+      "note": "Generic unbound remotePackage with no concrete URL, digest, Drive or Bolabol CDN leakage."
+    },
+    {
+      "path": "lasr01_settings_migration.sh",
+      "kind": "lasr01-delta",
+      "area": "LASR-01 settings migration",
+      "enabled": true,
+      "note": "Legacy decode merges defaults while preserving WhisperKit/MLX state and provider selection."
+    },
+    {
+      "path": "lasr01_no_future_wiring.sh",
+      "kind": "lasr01-delta",
+      "area": "LASR-01 future-step leakage",
+      "enabled": true,
+      "note": "No LASR-02+ downloader, engine, pipeline or Models UI wiring."
+    },
+    {
+      "path": "lasr01_review_state.sh",
+      "kind": "lasr01-delta",
+      "area": "LASR-01 review and workflow state",
+      "enabled": true,
+      "note": "Reviewer APPROVED; exact target files; current step/post-tag unchanged; coherent QA transition."
+    }
+  ]
+}
