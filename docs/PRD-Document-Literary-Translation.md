@@ -105,8 +105,9 @@ VaniScript не нужно превращать во второе отдельн
 10. Автосохранять каждый успешно обработанный чанк и возобновлять работу после перезапуска.
 11. Экспортировать локализованный DOCX на основе исходного OOXML.
 12. При пакетном экспорте сохранять в выбранную папку исходник, локализованный DOCX и самодостаточный `.vaniscript`-проект.
-13. При открытии `.vaniscript` восстанавливать исходник, структурированный перевод и готовый локализованный DOCX.
-14. Не ломать существующие аудио/видео-проекты и старые проектные бандлы.
+13. Извлекать список требуемых документом шрифтов, сверять его с системным каталогом macOS и давать пользователю явный выбор шрифтов/замен до обработки и экспорта.
+14. При открытии `.vaniscript` восстанавливать исходник, структурированный перевод, типографический профиль и готовый локализованный DOCX.
+15. Не ломать существующие аудио/видео-проекты и старые проектные бандлы.
 
 ### 4.2. Не обещать в первой версии
 
@@ -567,9 +568,85 @@ Memory должна быть видимой и редактируемой в п�
 - локализованный файл открывается как корректный DOCX;
 - ссылки на `Brill-Roman` и `Gentium` сохраняются.
 
-### 14.3. Ограничение шрифтов
+### 14.3. Системные шрифты, выбор и замены
 
-В первой книге Brill-Roman и Gentium не встроены в DOCX. VaniScript обязан сохранить эти имена и всю типографику, но не должен автоматически встраивать или распространять шрифтовые файлы без проверки лицензии. Если на машине редактора шрифта нет, Word подставит замену. Preflight/export screen должен показывать предупреждение `Required fonts not embedded`.
+В первой книге используются `Brill-Roman` и `Gentium`; оба шрифта указаны в OOXML, но не встроены в DOCX. Важно разделить две вещи:
+
+- наличие шрифта в системе позволяет VaniScript и Word корректно отрисовать документ;
+- выбор шрифта определяет, какие ссылки будут сохранены или намеренно заменены в локализованном DOCX.
+
+Установка шрифта не должна быть скрытым требованием. После импорта VaniScript извлекает все `w:rFonts` (`ascii`, `hAnsi`, `eastAsia`, `cs`) из runs и стилей, строит список требований и немедленно сверяет его с системным каталогом macOS.
+
+#### 14.3.1. Модель типографики
+
+В `VaniScriptCore` добавить сериализуемые модели без зависимости от AppKit:
+
+```swift
+enum DocumentFontPolicy: String, Codable {
+    case preserveDocumentFonts
+    case replaceMissingFonts
+    case overrideTranslatedText
+}
+
+enum FontResolutionStatus: String, Codable {
+    case installedExact
+    case installedAlias
+    case missing
+    case selectedReplacement
+}
+
+struct DocumentFontMapping: Codable, Hashable {
+    var sourceFontName: String
+    var replacementPostScriptName: String?
+    var applyToTranslatedRunsOnly: Bool
+}
+
+struct DocumentTypographyProfile: Codable {
+    var policy: DocumentFontPolicy
+    var mappings: [DocumentFontMapping]
+}
+```
+
+`DocumentFontRequirement` дополнительно хранит исходное имя, атрибут/роль, список style IDs, число использований и текущий resolution status. В проекте сохраняются имена и выбор пользователя, но не `NSFont` и не бинарные файлы шрифтов.
+
+#### 14.3.2. Системный каталог и resolver
+
+App-layer сервис `SystemFontCatalog` перечисляет установленные family/face/PostScript names через Core Text, а `DocumentFontResolver` сопоставляет ссылки DOCX в следующем порядке:
+
+1. точный PostScript name;
+2. точное family + face/traits;
+3. нормализованный alias без различий регистра, пробелов и дефисов;
+4. явно выбранная пользователем замена;
+5. статус `missing`, без молчаливой подмены.
+
+Каталог перечитывается при запуске приложения, после импорта документа, по кнопке `Refresh Fonts` и при возвращении приложения в foreground. Для каждого выбранного шрифта resolver отдельно проверяет наличие глифов для символов проекта, включая `ṛ`, `ṣ`, `ā`, `ī`, `ū`, `ṅ`, `ñ`, `ṭ`, `ḍ`, `ṇ`, `ś` и другие диакритические знаки. Установленный шрифт без нужных глифов считается несовместимым и получает предупреждение.
+
+#### 14.3.3. UI выбора
+
+В document-mode `ConfigWorkspaceView` появляется секция `Document Fonts`:
+
+- строка на каждый требуемый шрифт: `Brill-Roman — Installed` / `Gentium — Missing`;
+- количество использований и роли, например body, quote, Sanskrit/verse;
+- searchable picker со всеми установленными системными шрифтами и их начертаниями;
+- мини-предпросмотр обычного текста и строки `Kṛṣṇa · Vṛndāvana · Śrīla Prabhupāda`;
+- выбор политики `Preserve original`, `Replace missing only`, `Use selected font for translated text`;
+- действия `Refresh Fonts` и `Open Font Book`;
+- предупреждение, если выбранный шрифт исчез после повторного открытия проекта.
+
+По умолчанию действует `Preserve original`: если Brill и Gentium установлены, дополнительных действий от пользователя не требуется. Если шрифт отсутствует, VaniScript не блокирует семантический перевод, но не показывает статус `Layout verified` и требует либо выбрать замену, либо явно продолжить с сохранением исходной ссылки.
+
+В `SettingsView` можно хранить глобальные предпочтения/fallback mappings, однако выбор внутри проекта всегда имеет приоритет. Это позволяет один раз сопоставить, например, отсутствующий `Brill-Roman`, но не навязывать замену другой книге.
+
+#### 14.3.4. Writer, экспорт и лицензии
+
+- `preserveDocumentFonts`: `fontTable.xml`, styles и `w:rFonts` остаются без изменений;
+- `replaceMissingFonts`: writer меняет только разрешённые ссылки согласно mapping и фиксирует изменение в quality report;
+- `overrideTranslatedText`: выбранный шрифт применяется только к переведённым runs; protected Sanskrit/runs сохраняют исходную типографику, если пользователь отдельно не изменил их mapping;
+- исходный DOCX всегда остаётся byte-identical;
+- `.vaniscript` сохраняет typography profile и повторно проверяет доступность шрифтов при открытии на другой машине;
+- export screen показывает таблицу `Required / Selected / Installed / Glyph coverage`.
+
+VaniScript не должен автоматически скачивать, встраивать или распространять Brill, Gentium либо любые другие font files без проверки лицензии. Отсутствие embedded fonts — предупреждение, а не повод тихо заменить гарнитуру системным default.
 
 ### 14.4. Содержание и пагинация
 
@@ -673,7 +750,8 @@ Voyage_to_Transcendence_Russian/
 - Sanskrit & Verse Policy;
 - Auto-approve toggle;
 - preset чанкинга;
-- итог preflight: страницы, слова, разделы, блоки, прогноз чанков, защищённые группы, предупреждения о шрифтах;
+- секцию `Document Fonts` с системными picker-ами, статусами installed/missing, glyph coverage и project-level mappings;
+- итог preflight: страницы, слова, разделы, блоки, прогноз чанков, защищённые группы и типографические предупреждения;
 - кнопку `Preview Boundaries` для выборочной проверки первых чанков.
 
 ### 16.3. Processing
@@ -710,7 +788,8 @@ Voyage_to_Transcendence_Russian/
 - `Open localized DOCX`;
 - `Reveal in Finder`;
 - отчёт полноты и список оставшихся `Needs Review`;
-- предупреждение о пагинации/TOC и отсутствующих шрифтах.
+- таблицу `Required / Selected / Installed / Glyph coverage`;
+- предупреждение о пагинации/TOC, отсутствующих шрифтах и применённых заменах.
 
 ## 17. Карта изменений по файлам
 
@@ -722,6 +801,7 @@ Voyage_to_Transcendence_Russian/
 - `Sources/VaniScriptCore/TranslationBudgetPlanner.swift`
 - `Sources/VaniScriptCore/DocumentTranslationContracts.swift`
 - `Sources/VaniScriptCore/DocumentTranslationValidator.swift`
+- `Sources/VaniScriptCore/DocumentTypographyProfile.swift`
 - `Sources/VaniScriptCore/ProjectAssetManifest.swift`
 - `Sources/VaniScriptCore/ProjectMigrator.swift`
 
@@ -731,17 +811,24 @@ Voyage_to_Transcendence_Russian/
 - `Sources/VaniScript/Services/DocumentImportService.swift`
 - `Sources/VaniScript/Services/DOCXPackageReader.swift`
 - `Sources/VaniScript/Services/DOCXRoundTripWriter.swift`
+- `Sources/VaniScript/Services/SystemFontCatalog.swift`
+- `Sources/VaniScript/Services/DocumentFontResolver.swift`
 - `Sources/VaniScript/Services/PDFDocumentImporter.swift`
 - `Sources/VaniScript/Services/DocumentTranslationCoordinator.swift`
 - `Sources/VaniScript/Services/DocumentTranslationEngine.swift`
 - `Sources/VaniScript/Services/TranslationPackageExporter.swift`
 
-### 17.3. Модифицируемые модели и сервисы
+### 17.3. Новые document views
+
+- `Sources/VaniScript/Views/DocumentFontPickerView.swift`
+- `Sources/VaniScript/Views/DocumentTypographyPreflightView.swift`
+
+### 17.4. Модифицируемые модели и сервисы
 
 - `Package.swift` — ZIPFoundation;
 - `WorkflowState.swift` — source kind, `selectDocument`, document start path;
-- `SessionModels.swift` — document state, source anchor, review disposition, quality report;
-- `AppSettings.swift` — document defaults и approval mode;
+- `SessionModels.swift` — document state, source anchor, review disposition, quality report и typography profile;
+- `AppSettings.swift` — document defaults, approval mode и глобальные font fallback mappings;
 - `ProviderRegistry.swift`/model catalogs — provider capabilities;
 - `DefaultPrompts.swift` — отдельные document prompts;
 - `CloudTextTranslationEngine.swift` — structured document request;
@@ -751,7 +838,7 @@ Voyage_to_Transcendence_Russian/
 - `ProjectBundleExporter.swift` и `ProjectBundleImporter.swift` — v4 assets и дедупликация;
 - `AppStoragePaths.swift` — `Projects/<id>/source`, `outputs`, `working`.
 
-### 17.4. Модифицируемые views
+### 17.5. Модифицируемые views
 
 - `UploadWorkspaceView.swift`;
 - `ConfigWorkspaceView.swift`;
@@ -837,6 +924,13 @@ DOCX:
 - output открывается в Word и LibreOffice;
 - paragraph/style order совпадает;
 - `Brill-Roman` и `Gentium` остаются в font/style references;
+- font preflight извлекает `Brill-Roman` и `Gentium` как отдельные требования;
+- exact/alias/PostScript matching даёт детерминированный результат;
+- системный picker показывает только реально доступные family/faces и восстанавливает выбор по PostScript name;
+- glyph coverage обнаруживает шрифт без нужной санскритской диакритики;
+- `preserveDocumentFonts` не меняет ни одной font reference;
+- выбранная замена меняет только разрешённые runs/styles и попадает в quality report;
+- повторное открытие проекта восстанавливает typography profile и заново помечает отсутствующий выбранный шрифт;
 - section/page/margin properties сохранены;
 - все нетекстовые OOXML parts не меняются;
 - источник остаётся byte-identical;
@@ -859,7 +953,7 @@ DOCX:
 
 ### Slice 2 — DOCX import + Document IR
 
-Реализовать безопасное чтение OOXML, извлечение блоков/styles/runs и preflight для первой книги.
+Реализовать безопасное чтение OOXML, извлечение блоков/styles/runs/font references и preflight для первой книги. Добавить core typography contracts, `SystemFontCatalog`, resolver и fixtures для Brill/Gentium.
 
 ### Slice 3 — semantic chunk planner
 
@@ -875,11 +969,11 @@ DOCX:
 
 ### Slice 6 — document review UX
 
-Условные upload/config/processing/review screens, block editor, protected blocks и issue navigation.
+Условные upload/config/processing/review screens, системный font picker, typography preflight, block editor, protected blocks и issue navigation.
 
 ### Slice 7 — DOCX round-trip writer
 
-Сборка output из исходного OOXML, package validation и local golden QA на рукописи.
+Сборка output из исходного OOXML, применение явных font mappings, package validation и local golden QA на рукописи.
 
 ### Slice 8 — project bundle и package export
 
@@ -915,7 +1009,9 @@ Security limits, PDF/TXT import tiers, performance, cancellation, large-document
 | Проект потерял файлы после переноса | Embedded typed assets в `.vaniscript` |
 | Старые аудиопроекты перестали открываться | Additive Codable migration и отдельный Document Pipeline |
 | Перевод поменял число страниц | Явно признать репагинацию; финальный layout QA |
-| Шрифт подменён на другой машине | Сохранить font references и показать font availability warning |
+| Шрифт подменён на другой машине | SystemFontCatalog + project-level font mapping + повторный preflight при открытии |
+| Выбранный шрифт не содержит санскритскую диакритику | Проверка glyph coverage до обработки и экспорта |
+| Приложение молча заменило отсутствующий шрифт | Запрет implicit fallback: только preserve или явный пользовательский mapping |
 | Вредоносный DOCX/PDF | ZIP/XML limits, no external fetch, no macros, atomic sandboxed import |
 
 ## 23. Итоговое архитектурное решение
