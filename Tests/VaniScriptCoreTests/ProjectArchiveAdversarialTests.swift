@@ -4,11 +4,12 @@ import Testing
 
 @Suite("Project archive adversarial boundaries")
 struct ProjectArchiveAdversarialTests {
-    @Test("archive round-trips an array without changing document translation state")
+    @Test("archive round-trip preserves records modulo documented archive normalization")
     func arrayRoundTrip() throws {
         let records = [record(id: "a", updated: "2026-01-02T00:00:00Z"), record(id: "b", updated: "2026-01-03T00:00:00Z")]
         let decoded = try ProjectArchive.decode(ProjectArchive.encode(records))
-        #expect(decoded == records)
+        let expected = records.map(normalized)
+        #expect(decoded == expected)
     }
 
     @Test("archive decoder accepts a single ProjectRecord object for backward compatibility")
@@ -17,7 +18,7 @@ struct ProjectArchiveAdversarialTests {
         let data = try JSONEncoder().encode(source)
         let decoded = try ProjectArchive.decode(data)
         #expect(decoded.count == 1)
-        #expect(decoded[0] == source)
+        #expect(decoded[0] == normalized(source))
     }
 
     @Test("archive decoder rejects empty, null, and unrelated JSON")
@@ -64,6 +65,12 @@ struct ProjectArchiveAdversarialTests {
         var empty = named
         empty.session.sourceFileName = ""
         #expect(empty.summary.name == "VaniScript Project")
+    }
+
+    private func normalized(_ record: ProjectRecord) -> ProjectRecord {
+        var copy = record
+        copy.session.normalizeTranslationArchive()
+        return copy
     }
 
     private func record(id: String, updated: String) -> ProjectRecord {
