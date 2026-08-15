@@ -17,7 +17,7 @@ struct TimelineCutTimeMapperAdversarialTests {
 
     @Test("cuts outside trim window clamp or disappear")
     func cutsClampToTrim() {
-        let trim = TimelineTrim(trimStartSec: 3, trimEndSec: 4) // active [3,16]
+        let trim = TimelineTrim(trimStartSec: 3, trimEndSec: 4)
         let cuts = [
             TimelineCut(startSec: -100, endSec: 2),
             TimelineCut(startSec: 1, endSec: 5),
@@ -41,12 +41,12 @@ struct TimelineCutTimeMapperAdversarialTests {
         #expect(normalized[0] == TimelineCut(startSec: 2, endSec: 2.011))
     }
 
-    @Test("nonfinite trim and cut values fail into finite clamped geometry")
+    @Test("nonfinite trim and cut values fail closed into finite geometry")
     func nonFiniteGeometry() {
         let trim = TimelineTrim(trimStartSec: .infinity, trimEndSec: .nan)
         let cuts = [TimelineCut(startSec: -.infinity, endSec: .infinity)]
         #expect(TimelineCutTimeMapper.activeOutputDuration(clipDuration: 30, trim: trim, cuts: cuts) == 30)
-        #expect(TimelineCutTimeMapper.normalizedCuts(cuts, clipDuration: 30, trim: trim) == [TimelineCut(startSec: 0, endSec: 30)])
+        #expect(TimelineCutTimeMapper.normalizedCuts(cuts, clipDuration: 30, trim: trim).isEmpty)
     }
 
     @Test("negative clip intro outro and trim cannot create negative virtual duration")
@@ -62,7 +62,7 @@ struct TimelineCutTimeMapperAdversarialTests {
 
     @Test("virtual mapping freezes on intro and outro inserts")
     func introOutroFreezePhysicalTime() {
-        let trim = TimelineTrim(trimStartSec: 2, trimEndSec: 3) // active [2,17]
+        let trim = TimelineTrim(trimStartSec: 2, trimEndSec: 3)
         #expect(TimelineCutTimeMapper.mapVirtualToPhysical(
             virtualSec: 2.5,
             clipDuration: 20,
@@ -71,7 +71,6 @@ struct TimelineCutTimeMapperAdversarialTests {
             introDuration: 2,
             outroDuration: 4
         ) == 2)
-        // active output lasts 15 sec, so outro occupies virtual 19..<23.
         #expect(TimelineCutTimeMapper.mapVirtualToPhysical(
             virtualSec: 20,
             clipDuration: 20,
@@ -85,8 +84,6 @@ struct TimelineCutTimeMapperAdversarialTests {
     @Test("mapping jumps across removed cut without emitting removed physical time")
     func virtualSkipsRemovedCut() {
         let cut = TimelineCut(startSec: 4, endSec: 8)
-        # virtual active timeline: 0-4 maps 0-4; immediately after maps 8+
-        # Boundary uses the pre-cut endpoint, the next positive epsilon is after cut.
         #expect(TimelineCutTimeMapper.mapVirtualToPhysical(
             virtualSec: 4,
             clipDuration: 12,
