@@ -71,13 +71,13 @@ absorbed_steps:
   - S11
 implementation:
   # pending | running | waiting_review | changes_requested | blocked | complete
-  status: waiting_review
+  status: changes_requested
   attempts: 17
   # Increment only after evidence evaluates an implementation attempt.
   # Runtime/provider interruption alone is not an implementation attempt.
 retry_guard:
   max_attempts_without_progress: 3
-  last_failure_signature: chunk29_duplicateBlockID_deterministic_echo_plus_decade_numbersChanged
+  last_failure_signature: review_blockSlices_mixedEmptyReadiness_pdfTxtCompleteness
   repeated_failure_count: 1
 omp:
   active_agent: null
@@ -108,23 +108,31 @@ human_acceptance:
   candidate_id: S7EmptyChunkExportChooserCandidate17
   evidence: Main verified focused 48/48, full 556/556, fresh build, app pid 71025; Human live empty-chunk pass and DOCX/PDF/TXT export acceptance required
 review:
-  status: pending
-  last_feedback_file: AI_Workflow_Kit/docs/AI/FEEDBACK.md
-  verdict: null
+  status: changes_requested
+  last_feedback_file: AI_Workflow_Kit/docs/AI/REVIEW_RESULT_S7.md
+  verdict: CHANGES_REQUESTED
   note: >-
-    Candidate 17 approves source-empty chunks without translation and adds
-    the DOCX/PDF/TXT document export chooser. Review package prepared in
-    AI_Workflow_Kit/docs/AI/REVIEW_PACKAGE_S7.md; Reviewer dispatch held by
-    Human experiment until explicit go-ahead.
+    Candidate 17 failed the S7 Reviewer gate on three cross-contract issues:
+    oversized-paragraph blockSlices are not consumed end-to-end by the
+    translation/archive path; mixed chunks containing valid source-empty
+    deterministic blocks are not recognized as ready on a later coordinator
+    pass and may trigger duplicate provider calls; PDF/TXT export can silently
+    fall back to original source text when translations are missing. Detailed
+    evidence and required regressions are in REVIEW_RESULT_S7.md. Candidate
+    15/16 fixes for structured Gemini output, deterministic echo handling,
+    decade number parity, metadata-only validation logging, and scroll re-sync
+    are otherwise preserved.
   # use status: skipped only after an explicit Human opt-out; record why in note
 qa:
   status: pending
   last_report: AI_Workflow_Kit/docs/AI/FEEDBACK.md
   suite: direct Gemini document output and real dual-pane scroll
-  bugs_open: 0
+  bugs_open: 3
   note: >-
-    Chunk 29 paid provider calls all returned HTTP 200 STOP but were rejected
-    locally by duplicateBlockID/blockOrder/numbersChanged; no 30-chunk limit exists.
+    Reviewer found three blocking cross-contract gaps before Tester: slice
+    translation/reassembly, mixed deterministic-empty readiness, and honest
+    PDF/TXT completeness. Existing candidate-17 Main evidence remains focused
+    48/48 and full 556/556, but those integration gaps are not covered.
   # recommended on; Human may opt out
   enabled: true
   # use status: skipped only after an explicit Human opt-out; record why in note
@@ -133,7 +141,7 @@ security:
   note: >-
     Offer once near release when work is ready (optional). Top models only:
     GLM 5.2 max, Sol max, or Opus 5 max. Not every step. Not Terra/Luna.
-next_actor: human
+next_actor: coder
 plan_files:
   - PIPELINE.md
   - AI_Workflow_Kit/docs/STEPS.md
@@ -149,10 +157,18 @@ checkpoint:
     Pre-S2 and post-S2 checkpoints were refused because unrelated workspace
     changes were outside the authorized scope; no unrelated paths were staged.
 coder_brief: |
-  Preserve candidate 08 translation correctness and candidate 09 no-jump work.
-  Make the real document Dual View bind two distinct pane-owned NSScrollViews
-  and synchronize every user scroll path. Fix direct Gemini structured output
-  budget/terminal diagnostics and prove ordered five-key rotation safely.
+  Preserve all verified candidate-15/16/17 behavior. Fix only the Reviewer
+  blockers: (1) make oversized-paragraph DocumentBlockSlice planning flow
+  through request/response/archive with stable slice identity and deterministic
+  parent-block reassembly; (2) make ready-state checks per block type so an
+  archived source-empty deterministic block is complete by presence while a
+  translatable block still requires usable translated text, proving a second
+  coordinator pass makes zero extra provider calls; (3) make PDF/TXT export
+  explicitly completeness-aware so zero/partial translations cannot silently
+  export original/mixed source as a completed translated document. Add
+  end-to-end regressions for all three. Do not regress deterministic echo
+  dedupe, decade-number parity, validation logging privacy, empty-source
+  approval, or Dual View scroll leadership/re-sync.
 notes: |
   Human requested all three BOLABOL Core ML engines. Existing LASR-01 catalog,
   LASR-02 download/presence, and completed S1 Parakeet work are preserved.
