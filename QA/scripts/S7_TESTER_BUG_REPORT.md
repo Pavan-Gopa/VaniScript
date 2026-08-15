@@ -2,11 +2,11 @@
 
 ## Status
 
-**Tester status: `blocked` for full runtime execution, with 3 source-confirmed product bugs and deterministic regression tests prepared.**
+**Tester status: `blocked` for full macOS runtime execution, with 3 source-confirmed product bugs. One of the three is additionally reproduced by an actually executed static QA gate.**
 
 The previous candidate-17 evidence reports **556/556** Swift tests green. That evidence predates this Tester expansion and was **not re-executed by this Tester session**. This Tester added **86 Swift tests**, bringing the intended Swift corpus to **642 tests**.
 
-No GitHub Actions workflow exists on the working branch and GitHub reports zero workflow runs for the Tester head. The available ChatGPT execution host is Linux `x86_64`, while `Package.swift` targets macOS 14 and the executable target depends on macOS/Apple-Silicon-oriented packages. Therefore the 642-test suite cannot be honestly reported as executed here.
+No GitHub Actions workflow exists on the working branch and GitHub reports zero workflow runs for the Tester head. The available ChatGPT execution host is Linux `x86_64`, while `Package.swift` targets macOS 14 and the executable target depends on macOS/Apple-Silicon-oriented packages. Therefore the 642-test Swift suite cannot be honestly reported as executed here.
 
 Run on the project Mac:
 
@@ -21,7 +21,7 @@ The runner now persists a complete transcript, gate status table, coverage-gap J
 ## BUG-S7-T01 — Mixed translated chunk can trigger a second provider call
 
 **Severity:** High — correctness/cost regression  
-**Confidence:** Source-confirmed; runtime regression test prepared  
+**Confidence:** Source-confirmed; runtime regression tests prepared  
 **Suspect:** `Sources/VaniScript/Services/DocumentTranslationCoordinator.swift`
 
 ### Reproduction contract
@@ -102,7 +102,7 @@ Make the full planner → request → response → persistence path slice-aware.
 ## BUG-S7-T03 — PDF/TXT can silently export untranslated source as translated output
 
 **Severity:** High — user-visible data correctness  
-**Confidence:** Source-confirmed; deterministic static QA guard prepared  
+**Confidence:** **Reproduced by executed static QA gate, exit code 1**  
 **Suspects:**
 
 - `Sources/VaniScriptCore/DocumentTranslationExportBuilder.swift`
@@ -119,11 +119,19 @@ Export a document to PDF or TXT when:
 
 The export builder intentionally falls back to original source text for missing translated blocks (needed by the current DOCX preservation behavior). `WorkflowStore.exportDocument(format:)` then validates the aggregate rendered text rather than semantic translation completeness. Because the source fallback is non-empty, zero/partial translation can pass the export guard and be presented as translated PDF/TXT.
 
-### Regression guard
+### Executed QA evidence
 
-`QA/scripts/s7_export_completeness_guard.py`
+The repository's `QA/scripts/s7_export_completeness_guard.py` logic was actually executed against the exact current `WorkflowStore.exportDocument(format:)` function body fetched from this branch.
 
-The guard requires a semantic translation-completeness check before the `NSSavePanel` boundary. It is intentionally expected to fail on candidate 17.
+```text
+FAIL: PDF/TXT export reaches NSSavePanel without checking translation completeness.
+The current aggregate non-empty check can pass on source fallback from DocumentTranslationExportBuilder.
+EXIT_CODE=1
+```
+
+Saved evidence: `QA/scripts/results/static-export-gate.log`.
+
+This is an executed deterministic static QA failure, not merely a source inference.
 
 ### Coder fix target
 
