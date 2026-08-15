@@ -7,28 +7,37 @@ cd "$ROOT"
 echo "== VaniScript expanded regression =="
 echo "Swift: $(swift --version | head -1)"
 
-echo "\n[1/8] S7 adversarial coordinator"
+echo "\n[1/11] S7 adversarial coordinator"
 swift test --filter S7AdversarialCoordinatorTests
 
-echo "\n[2/8] S7 adversarial validator"
+echo "\n[2/11] S7 adversarial validator"
 swift test --filter S7AdversarialValidatorTests
 
-echo "\n[3/8] S7 contract boundaries"
+echo "\n[3/11] S7 contract boundaries"
 swift test --filter S7ContractBoundaryTests
 
-echo "\n[4/8] Document structured-output + engine/coordinator"
+echo "\n[4/11] S7 document import adversarial"
+swift test --filter S7DocumentImportAdversarialTests
+
+echo "\n[5/11] S7 scroll edge cases"
+swift test --filter S7ScrollEdgeCaseTests
+
+echo "\n[6/11] Document structured-output + engine/coordinator"
 swift test --filter 'DocumentCloudStructuredOutputTests|DocumentTranslationEngineTests|DocumentCoordinatorTests'
 
-echo "\n[5/8] Document planner + budget + review/scroll"
+echo "\n[7/11] Document planner + budget + review/scroll"
 swift test --filter 'SemanticChunkPlannerTests|TranslationBudgetPlannerTests|DocumentReviewWorkflowTests|DocumentReviewScrollSyncTests'
 
-echo "\n[6/8] Document import/export/migration/security"
+echo "\n[8/11] Document import/export/migration/security"
 swift test --filter 'DocumentImportServiceTests|DOCXPackageReaderTests|DocumentExportTests|DocumentTranslationExportTests|WorkflowStoreDocumentTests|ProjectMigrationTests'
 
-echo "\n[7/8] Heuristic whole-app coverage inventory"
+echo "\n[9/11] PDF/TXT export completeness regression guard"
+python3 QA/scripts/s7_export_completeness_guard.py
+
+echo "\n[10/11] Heuristic whole-app coverage inventory"
 python3 QA/scripts/test_coverage_inventory.py --json /tmp/vaniscript-test-coverage-gaps.json
 
-echo "\n[8/8] Full Swift suite"
+echo "\n[11/11] Full Swift suite"
 swift test
 
 echo "\nExpanded regression complete."
