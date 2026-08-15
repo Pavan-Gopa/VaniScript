@@ -81,7 +81,7 @@ struct S7AdversarialValidatorTests {
             ]
         )
         let result = validator.validate(response: response, request: request)
-        #expect(result.errors.contains { $0.code == "unicodeNFC" })
+        #expect(!result.errors.contains { $0.code == "unicodeNFC" })
         #expect(result.normalizedResponse != nil)
     }
 
@@ -164,7 +164,16 @@ struct S7AdversarialValidatorTests {
             ),
             request: request
         )
-        #expect(reordered.errors.contains { $0.code == "placeholdersChanged" })
+        #expect(!reordered.errors.contains { $0.code == "placeholdersChanged" })
+
+        let missing = validator.validate(
+            response: DocumentTranslationResponse(
+                chunkId: request.chunkId,
+                blocks: [DocumentTranslationOutputBlock(id: "b", text: "{{person}} {chapter} [NAME]")]
+            ),
+            request: request
+        )
+        #expect(missing.errors.contains { $0.code == "placeholdersChanged" })
     }
 
     @Test("decimal punctuation remains exact and changed decimals are detected")

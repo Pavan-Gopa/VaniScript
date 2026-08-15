@@ -20,8 +20,8 @@ The runner now persists a complete transcript, gate status table, coverage-gap J
 
 ## BUG-S7-T01 — Mixed translated chunk can trigger a second provider call
 
-**Severity:** High — correctness/cost regression  
-**Confidence:** Source-confirmed; runtime regression tests prepared  
+**Severity:** High — correctness/cost regression
+**Confidence:** Source-confirmed; runtime regression tests prepared
 **Suspect:** `Sources/VaniScript/Services/DocumentTranslationCoordinator.swift`
 
 ### Reproduction contract
@@ -62,8 +62,8 @@ Do not weaken the regression assertions to accept another provider call.
 
 ## BUG-S7-T02 — Oversized paragraph slices are not end-to-end safe
 
-**Severity:** Critical for oversized-document fallback  
-**Confidence:** Source-confirmed across planner → engine → coordinator/archive; runtime regression tests prepared  
+**Severity:** Critical for oversized-document fallback
+**Confidence:** Source-confirmed across planner → engine → coordinator/archive; runtime regression tests prepared
 **Suspects:**
 
 - `Sources/VaniScriptCore/SemanticChunkPlanner.swift`
@@ -101,8 +101,8 @@ Make the full planner → request → response → persistence path slice-aware.
 
 ## BUG-S7-T03 — PDF/TXT can silently export untranslated source as translated output
 
-**Severity:** High — user-visible data correctness  
-**Confidence:** **Reproduced by executed static QA gate, exit code 1**  
+**Severity:** High — user-visible data correctness
+**Confidence:** **Reproduced by executed static QA gate, exit code 1**
 **Suspects:**
 
 - `Sources/VaniScriptCore/DocumentTranslationExportBuilder.swift`

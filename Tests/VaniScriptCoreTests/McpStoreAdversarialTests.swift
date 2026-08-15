@@ -89,10 +89,12 @@ struct McpStoreAdversarialTests {
     func requestReplay() throws {
         let cache = McpRequestCache(lifetime: 60)
         cache.store(requestID: "r", toolName: "tool", fingerprint: "fp", result: ["value": 7])
-        let first = try #require(cache.result(requestID: "r", toolName: "tool", fingerprint: "fp"))
+        let firstResult = try cache.result(requestID: "r", toolName: "tool", fingerprint: "fp")
+        let first = try #require(firstResult)
         #expect(first["value"] as? Int == 7)
         #expect(first["idempotentReplay"] as? Bool == true)
-        let second = try #require(cache.result(requestID: "r", toolName: "tool", fingerprint: "fp"))
+        let secondResult = try cache.result(requestID: "r", toolName: "tool", fingerprint: "fp")
+        let second = try #require(secondResult)
         #expect(second["idempotentReplay"] as? Bool == true)
     }
 

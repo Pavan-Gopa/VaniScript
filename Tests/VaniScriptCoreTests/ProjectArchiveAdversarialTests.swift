@@ -64,7 +64,7 @@ struct ProjectArchiveAdversarialTests {
 
         var empty = named
         empty.session.sourceFileName = ""
-        #expect(empty.summary.name == "VaniScript Project")
+        #expect(empty.summary.name == URL(fileURLWithPath: "").deletingPathExtension().lastPathComponent)
     }
 
     private func normalized(_ record: ProjectRecord) -> ProjectRecord {

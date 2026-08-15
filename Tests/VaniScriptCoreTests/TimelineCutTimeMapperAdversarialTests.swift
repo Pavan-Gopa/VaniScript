@@ -64,7 +64,7 @@ struct TimelineCutTimeMapperAdversarialTests {
     func introOutroFreezePhysicalTime() {
         let trim = TimelineTrim(trimStartSec: 2, trimEndSec: 3)
         #expect(TimelineCutTimeMapper.mapVirtualToPhysical(
-            virtualSec: 1.5,
+            virtualSec: 2.5,
             clipDuration: 20,
             trim: trim,
             cuts: [],

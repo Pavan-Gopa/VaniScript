@@ -6,11 +6,11 @@ onboarding:
   status: complete
   model_pairs_confirmed: true
   completed_at: 2026-08-11T05:55:29Z
-current_step: S7
+current_step: S13
 current_work_item: null
 step_description: >-
-  Deliver document translation: strict structured output, sequential batch
-  auto-approve, and isolated manual retranslation of one selected chunk.
+  Harden document import/export, preserve trusted rich-text foreground colors
+  end to end, and make every primary workflow surface readable in Light/Dark.
 target_files:
   - Sources/VaniScriptCore/DocumentModels.swift
   - Sources/VaniScriptCore/DocumentTranslationProfile.swift
@@ -22,14 +22,23 @@ target_files:
   - Sources/VaniScriptCore/ProjectArchive.swift
   - Sources/VaniScriptCore/ProjectBundleExporter.swift
   - Sources/VaniScriptCore/ProjectBundleImporter.swift
+  - Sources/VaniScriptCore/DocumentTranslationExportBuilder.swift
   - Sources/VaniScript/Views/UploadWorkspaceView.swift
   - Sources/VaniScript/Stores/WorkflowStore.swift
   - Sources/VaniScript/Services/SourceClassifier.swift
   - Sources/VaniScript/Services/DocumentImportService.swift
   - Sources/VaniScript/Services/DOCXPackageReader.swift
+  - Sources/VaniScript/Services/DocumentExportWriters.swift
+  - Sources/VaniScript/Services/PDFDocumentImporter.swift
   - Sources/VaniScript/Services/AppStoragePaths.swift
   - Sources/VaniScript/Views/ConfigWorkspaceView.swift
   - Sources/VaniScript/Views/ReviewWorkspaceView.swift
+  - Sources/VaniScript/Theme/VaniScriptTheme.swift
+  - Sources/VaniScript/Views/ContentView.swift
+  - Sources/VaniScript/Views/ChatSidebarView.swift
+  - Sources/VaniScript/Views/ProjectSidebarView.swift
+  - Sources/VaniScript/Views/SettingsView.swift
+  - Sources/VaniScript/Views/ExportWorkspaceView.swift
   - Sources/VaniScriptCore/SemanticChunkPlanner.swift
   - Sources/VaniScriptCore/TranslationBudgetPlanner.swift
   - Sources/VaniScriptCore/DefaultPrompts.swift
@@ -45,6 +54,8 @@ target_files:
   - Tests/VaniScriptTests/SourceClassifierTests.swift
   - Tests/VaniScriptTests/DocumentImportServiceTests.swift
   - Tests/VaniScriptTests/DOCXPackageReaderTests.swift
+  - Tests/VaniScriptTests/DOCXRoundTripWriterTests.swift
+  - Tests/VaniScriptTests/PDFDocumentImporterTests.swift
   - Tests/VaniScriptTests/DocumentConfigWorkflowTests.swift
   - Tests/VaniScriptCoreTests/SemanticChunkPlannerTests.swift
   - Tests/VaniScriptCoreTests/TranslationBudgetPlannerTests.swift
@@ -71,18 +82,19 @@ absorbed_steps:
   - S11
 implementation:
   # pending | running | waiting_review | changes_requested | blocked | complete
-  status: changes_requested
-  attempts: 17
+  status: waiting_review
+  attempts: 6
   # Increment only after evidence evaluates an implementation attempt.
   # Runtime/provider interruption alone is not an implementation attempt.
 retry_guard:
   max_attempts_without_progress: 3
-  last_failure_signature: review_blockSlices_mixedEmptyReadiness_pdfTxtCompleteness
-  repeated_failure_count: 1
+  last_failure_signature: null
+  repeated_failure_count: 0
+
 omp:
+  last_result_artifact: agent://S13LightThemeFix24
   active_agent: null
   active_role: null
-  last_result_artifact: agent://S7EmptyChunkExportChooserCandidate17
   model_failure:
     # none | awaiting_human | backup_authorized
     status: none
@@ -105,46 +117,28 @@ omp:
 human_acceptance:
   # pending | accepted | changes_requested
   status: pending
-  candidate_id: S7EmptyChunkExportChooserCandidate17
-  evidence: Main verified focused 48/48, full 556/556, fresh build, app pid 71025; Human live empty-chunk pass and DOCX/PDF/TXT export acceptance required
+  candidate_id: S13ForegroundColorLightThemeCandidate24
+  evidence: Main verified focused color/theme gates, full 674/674 in 90 suites, fresh app build, Light Review red-span/chrome/editor smoke
 review:
-  status: changes_requested
-  last_feedback_file: AI_Workflow_Kit/docs/AI/REVIEW_RESULT_S7.md
-  verdict: CHANGES_REQUESTED
-  note: >-
-    Candidate 17 failed the S7 Reviewer gate on three cross-contract issues:
-    oversized-paragraph blockSlices are not consumed end-to-end by the
-    translation/archive path; mixed chunks containing valid source-empty
-    deterministic blocks are not recognized as ready on a later coordinator
-    pass and may trigger duplicate provider calls; PDF/TXT export can silently
-    fall back to original source text when translations are missing. Detailed
-    evidence and required regressions are in REVIEW_RESULT_S7.md. Candidate
-    15/16 fixes for structured Gemini output, deterministic echo handling,
-    decade number parity, metadata-only validation logging, and scroll re-sync
-    are otherwise preserved.
-  # use status: skipped only after an explicit Human opt-out; record why in note
+  status: pending
+  last_feedback_file: null
+  verdict: null
+  note: Foreground-color and Light/Dark candidate awaits Human acceptance
 qa:
   status: pending
-  last_report: AI_Workflow_Kit/docs/AI/FEEDBACK.md
-  suite: direct Gemini document output and real dual-pane scroll
-  bugs_open: 3
-  note: >-
-    Reviewer found three blocking cross-contract gaps before Tester: slice
-    translation/reassembly, mixed deterministic-empty readiness, and honest
-    PDF/TXT completeness. Existing candidate-17 Main evidence remains focused
-    48/48 and full 556/556, but those integration gaps are not covered.
-  # recommended on; Human may opt out
+  last_report: null
+  suite: import tiers, PDF reconstruction, media regression
+  bugs_open: 0
+  note: null
   enabled: true
-  # use status: skipped only after an explicit Human opt-out; record why in note
 security:
   next_run: none
-  note: >-
-    Offer once near release when work is ready (optional). Top models only:
-    GLM 5.2 max, Sol max, or Opus 5 max. Not every step. Not Terra/Luna.
-next_actor: coder
+  note: Offer once near release when work is ready (optional).
+next_actor: human
+
+
 plan_files:
   - PIPELINE.md
-  - AI_Workflow_Kit/docs/STEPS.md
   - AI_Workflow_Kit/docs/DECISIONS.md
   - AI_Workflow_Kit/docs/PROJECT_CONTEXT.md
   - docs/PRD-Document-Literary-Translation.md
@@ -157,18 +151,11 @@ checkpoint:
     Pre-S2 and post-S2 checkpoints were refused because unrelated workspace
     changes were outside the authorized scope; no unrelated paths were staged.
 coder_brief: |
-  Preserve all verified candidate-15/16/17 behavior. Fix only the Reviewer
-  blockers: (1) make oversized-paragraph DocumentBlockSlice planning flow
-  through request/response/archive with stable slice identity and deterministic
-  parent-block reassembly; (2) make ready-state checks per block type so an
-  archived source-empty deterministic block is complete by presence while a
-  translatable block still requires usable translated text, proving a second
-  coordinator pass makes zero extra provider calls; (3) make PDF/TXT export
-  explicitly completeness-aware so zero/partial translations cannot silently
-  export original/mixed source as a completed translated document. Add
-  end-to-end regressions for all three. Do not regress deterministic echo
-  dedupe, decade-number parity, validation logging privacy, empty-source
-  approval, or Dual View scroll leadership/re-sync.
+  Candidate 24 preserves trusted source foreground colors through import,
+  translation, attributed editing, persistence, DOCX/PDF output, and keeps
+  plain formats honest. Primary workflow chrome now uses one semantic dynamic
+  palette with readable enabled/disabled interaction states. Await Human
+  Light/Dark Review and real exported DOCX/PDF acceptance.
 notes: |
   Human requested all three BOLABOL Core ML engines. Existing LASR-01 catalog,
   LASR-02 download/presence, and completed S1 Parakeet work are preserved.
