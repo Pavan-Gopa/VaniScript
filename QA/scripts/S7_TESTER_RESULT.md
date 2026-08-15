@@ -1,5 +1,7 @@
 # S7 Tester Result — Candidate 17
 
+> **Orchestrator notice:** the authoritative inventory for the Tester expansion is `QA/scripts/S7_86_NEW_TESTS_MANIFEST.md`. It enumerates **exactly 86 new Swift tests across 9 suites**. Do not fall back to the historical 556-test baseline when carrying S7 forward.
+
 ```yaml
 status: blocked
 pass_count: 0
@@ -38,6 +40,8 @@ blockers: Full Swift/runtime execution is unavailable in this Tester environment
 - Executed failure: `s7_export_completeness_guard.py`, **exit code 1**.
 - Source-confirmed product bugs prepared for deterministic runtime reproduction: **3**.
 - GitHub Actions runs available for the Tester head before this result: **0**.
+
+Authoritative 86-test inventory: `QA/scripts/S7_86_NEW_TESTS_MANIFEST.md`.
 
 Executed transcript: `QA/scripts/results/static-export-gate.log`.
 
