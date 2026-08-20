@@ -1,2 +1,6 @@
-
+.build/
+.swiftpm/
+dist/
+.DS_Store
+**/.DS_Store
 graphify-out/
