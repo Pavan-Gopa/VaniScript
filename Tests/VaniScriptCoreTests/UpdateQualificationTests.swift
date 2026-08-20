@@ -471,13 +471,18 @@ struct UpdateQualificationTests {
         let fallbackApi = try #require(appcastStep.range(of: "repos/$GITHUB_REPOSITORY/releases/generate-notes", range: fallbackBranch.upperBound..<appcastStep.endIndex))
         let appcastInputCopy = try #require(appcastStep.range(of: "cp \"dist/VaniScript-$version.md\" dist/appcast-input/", range: fallbackApi.upperBound..<appcastStep.endIndex))
         let generateAppcast = try #require(appcastStep.range(of: "generate_appcast", range: appcastInputCopy.upperBound..<appcastStep.endIndex))
+        let directOutput = try #require(appcastStep.range(of: "-o dist/appcast.xml dist/appcast-input", range: generateAppcast.upperBound..<appcastStep.endIndex))
+        let appcastValidation = try #require(appcastStep.range(of: "test -s dist/appcast.xml", range: directOutput.upperBound..<appcastStep.endIndex))
 
         #expect(curatedCheck.lowerBound < curatedCopy.lowerBound)
         #expect(curatedCopy.lowerBound < fallbackBranch.lowerBound)
         #expect(fallbackBranch.lowerBound < fallbackApi.lowerBound)
         #expect(fallbackApi.lowerBound < appcastInputCopy.lowerBound)
         #expect(appcastInputCopy.lowerBound < generateAppcast.lowerBound)
-
+        #expect(generateAppcast.lowerBound < directOutput.lowerBound)
+        #expect(directOutput.lowerBound < appcastValidation.lowerBound)
+        #expect(!appcastStep.contains("mv dist/appcast-input/appcast.xml"))
+        #expect(!source.contains("mv dist/appcast-input/appcast.xml"))
         let uploadStep = source[uploadStepHeader.lowerBound..<source.endIndex]
         let releaseCreate = try #require(uploadStep.range(of: "gh release create"))
         let notesFlag = try #require(uploadStep.range(of: "--notes-file \"dist/VaniScript-$version.md\"", range: releaseCreate.upperBound..<uploadStep.endIndex))
