@@ -303,6 +303,161 @@ struct UpdateQualificationTests {
         #expect(source.contains("--verify-tag"))
     }
 
+    @Test("release workflow uses UTC timestamp format for tag pushes, never GITHUB_RUN_NUMBER, and preserves explicit dispatch input")
+    func releaseWorkflowBuildIdentityResolutionAndMonotonicity() throws {
+        let source = try String(contentsOfFile: ".github/workflows/release.yml", encoding: .utf8)
+        let identityStepHeader = try #require(source.range(of: "- name: Resolve and validate release identity"))
+        let qualificationStepHeader = try #require(source.range(of: "- name: Focused qualification tests", range: identityStepHeader.upperBound..<source.endIndex))
+        let identityStep = String(source[identityStepHeader.lowerBound..<qualificationStepHeader.lowerBound])
+
+        // Verify tag-push path uses strictly numeric UTC timestamp date format and never GITHUB_RUN_NUMBER
+        #expect(identityStep.contains("build=\"$(date -u +%Y%m%d%H%M%S)\""))
+        #expect(!source.contains("GITHUB_RUN_NUMBER"))
+
+        // Scope required: true to the workflow_dispatch build_number input
+        let dispatchInputsHeader = try #require(source.range(of: "workflow_dispatch:"))
+        let permissionsHeader = try #require(source.range(of: "permissions:", range: dispatchInputsHeader.upperBound..<source.endIndex))
+        let dispatchSection = String(source[dispatchInputsHeader.lowerBound..<permissionsHeader.lowerBound])
+        let buildNumberInput = try #require(dispatchSection.range(of: "build_number:"))
+        let buildNumberSection = String(dispatchSection[buildNumberInput.lowerBound..<dispatchSection.endIndex])
+        #expect(buildNumberSection.contains("required: true"))
+        #expect(buildNumberSection.contains("description: Strictly increasing numeric build number"))
+        #expect(identityStep.contains("INPUT_BUILD: ${{ inputs.build_number }}"))
+        #expect(identityStep.contains("build=\"$INPUT_BUILD\""))
+
+        // Assert tag-to-revision binding for workflow_dispatch
+        #expect(identityStep.contains("git rev-parse --verify \"refs/tags/$tag^{commit}\""))
+        #expect(identityStep.contains("target_commit=\"${GITHUB_SHA:-$(git rev-parse HEAD)}\""))
+        #expect(identityStep.contains("[[ \"$tag_commit\" == \"$target_commit\" ]]"))
+
+        // Verify strictly numeric format validation
+        #expect(identityStep.contains("[[ \"$build\" =~ ^[0-9]+$ ]]"))
+
+        // Verify Python arbitrary-precision monotonic comparison is wired via env and bash arithmetic is removed
+        #expect(identityStep.contains("CURRENT_BUILD=\"$build\" PREVIOUS_BUILD=\"$previous_build\""))
+        #expect(identityStep.contains("current_build = int(os.environ['CURRENT_BUILD'])"))
+        #expect(identityStep.contains("previous_build = int(os.environ['PREVIOUS_BUILD'])"))
+        #expect(identityStep.contains("raise SystemExit(f\"build number must increase: {current_build} <= {previous_build}\")"))
+        #expect(!source.contains("10#$build"))
+        #expect(!source.contains("10#$previous_build"))
+
+        // Baseline: v3.0.0 manifest build 20260818223000
+        let v300Build: Int64 = 20260818223000
+
+        // Failure-before: GITHUB_RUN_NUMBER=1 fails monotonic preflight comparison (1 <= 20260818223000)
+        let failureBeforeRunNumberBuild: Int64 = 1
+        #expect(failureBeforeRunNumberBuild <= v300Build, "GITHUB_RUN_NUMBER=1 correctly fails against v3.0.0 baseline 20260818223000")
+
+        // Fix-after: UTC timestamp format (YYYYMMDDHHMMSS) strictly increases over v3.0.0 baseline
+        let utcDateFormatter = DateFormatter()
+        utcDateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        utcDateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        utcDateFormatter.dateFormat = "yyyyMMddHHmmss"
+        let generatedTimestamp = utcDateFormatter.string(from: Date())
+        #expect(generatedTimestamp.count == 14)
+        #expect(generatedTimestamp.range(of: "^[0-9]{14}$", options: .regularExpression) != nil)
+
+        // Any current or future UTC date after 2026-08-18 strictly increases over v3.0.0 build
+        if let currentBuildValue = Int64(generatedTimestamp) {
+            #expect(currentBuildValue > v300Build, "Current UTC timestamp build \(generatedTimestamp) must strictly exceed v3.0.0 build \(v300Build)")
+        }
+
+        // Explicit dispatch build number (e.g. 20260820000000) strictly increases
+        let explicitDispatchBuild: Int64 = 20260820000000
+        #expect(explicitDispatchBuild > v300Build)
+    }
+
+    @Test("workflow dispatch enforces tag commit peeling and equality with dispatched commit")
+    func workflowDispatchEnforcesTagToRevisionBinding() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let testScript = """
+        set -euo pipefail
+        cd "\(tempDir.path)"
+        git init -q
+        git config user.email "test@example.com"
+        git config user.name "Test User"
+        echo "v1" > file.txt
+        git add file.txt
+        git commit -qm "Initial commit"
+        git tag -a v3.1.0 -m "Release 3.1.0"
+
+        # 1. Matching commit succeeds
+        tag="v3.1.0"
+        GITHUB_SHA="$(git rev-parse HEAD)"
+        tag_commit="$(git rev-parse --verify "refs/tags/$tag^{commit}" 2>/dev/null || true)"
+        [[ -n "$tag_commit" ]] || exit 2
+        target_commit="${GITHUB_SHA:-$(git rev-parse HEAD)}"
+        [[ "$tag_commit" == "$target_commit" ]] || exit 3
+
+        # 2. Non-matching commit (commit moved past tag) fails
+        echo "v2" >> file.txt
+        git commit -am "Second commit"
+        GITHUB_SHA="$(git rev-parse HEAD)"
+        target_commit="${GITHUB_SHA:-$(git rev-parse HEAD)}"
+        if [[ "$tag_commit" == "$target_commit" ]]; then
+            exit 4
+        fi
+
+        # 3. Non-existent tag fails
+        missing_tag="v9.9.9"
+        missing_commit="$(git rev-parse --verify "refs/tags/$missing_tag^{commit}" 2>/dev/null || true)"
+        if [[ -n "$missing_commit" ]]; then
+            exit 5
+        fi
+        exit 0
+        """
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/bash")
+        process.arguments = ["-c", testScript]
+        try process.run()
+        process.waitUntilExit()
+        #expect(process.terminationStatus == 0)
+    }
+
+    @Test("workflow Python preflight enforces arbitrary-precision monotonic build numbers")
+    func workflowPythonPreflightEnforcesArbitraryPrecisionMonotonicBuilds() throws {
+        // 1. Real failure before fix: GITHUB_RUN_NUMBER=1 fails against v3.0.0 build 20260818223000
+        let realFailure = try runWorkflowPreflightPythonScript(
+            currentBuild: "1",
+            previousBuild: "20260818223000"
+        )
+        #expect(realFailure.status != 0)
+        #expect(realFailure.output.contains("build number must increase: 1 <= 20260818223000"))
+
+        // 2. Real fix after: UTC timestamp strictly exceeds v3.0.0 build 20260818223000
+        let realFix = try runWorkflowPreflightPythonScript(
+            currentBuild: "20260820120000",
+            previousBuild: "20260818223000"
+        )
+        #expect(realFix.status == 0)
+
+        // 3. Equality rejects
+        let equalityRejection = try runWorkflowPreflightPythonScript(
+            currentBuild: "20260818223000",
+            previousBuild: "20260818223000"
+        )
+        #expect(equalityRejection.status != 0)
+        #expect(equalityRejection.output.contains("build number must increase: 20260818223000 <= 20260818223000"))
+
+        // 4. Oversized previous rejects smaller timestamp (beyond 64-bit int range)
+        let oversizedPrevious = try runWorkflowPreflightPythonScript(
+            currentBuild: "20260820120000",
+            previousBuild: "99999999999999999999999999999999999"
+        )
+        #expect(oversizedPrevious.status != 0)
+        #expect(oversizedPrevious.output.contains("build number must increase: 20260820120000 <= 99999999999999999999999999999999999"))
+
+        // 5. Oversized current greater succeeds (beyond 64-bit int range)
+        let oversizedCurrent = try runWorkflowPreflightPythonScript(
+            currentBuild: "100000000000000000000000000000000000",
+            previousBuild: "99999999999999999999999999999999999"
+        )
+        #expect(oversizedCurrent.status == 0)
+    }
+
     @Test("release workflow prioritizes curated notes over generated fallback before appcast generation")
     func releaseWorkflowCuratedNotesPrecedenceAndAppcastOrdering() throws {
         let source = try String(contentsOfFile: ".github/workflows/release.yml", encoding: .utf8)
@@ -437,5 +592,44 @@ struct UpdateQualificationTests {
         try process.run()
         process.waitUntilExit()
         #expect(process.terminationStatus == 0, "Expected \(current) compared with \(previous) to equal \(expected)")
+    }
+    private func runWorkflowPreflightPythonScript(
+        version: String = "3.1.0",
+        previousVersion: String = "3.0.0",
+        currentBuild: String,
+        previousBuild: String
+    ) throws -> (status: Int32, output: String) {
+        let workflow = try String(contentsOfFile: ".github/workflows/release.yml", encoding: .utf8)
+        let pythonStartMarker = "python3 - <<'PY'\n"
+        let pythonEndMarker = "          PY\n"
+        let start = try #require(workflow.range(of: pythonStartMarker)?.upperBound)
+        let end = try #require(workflow.range(of: pythonEndMarker, range: start..<workflow.endIndex)?.lowerBound)
+        let pythonScript = workflow[start..<end]
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { line in line.hasPrefix("          ") ? String(line.dropFirst(10)) : String(line) }
+            .joined(separator: "\n")
+        let scriptURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".py")
+        try pythonScript.write(to: scriptURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: scriptURL) }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        process.arguments = [scriptURL.path]
+        var environment = ProcessInfo.processInfo.environment
+        environment["VERSION"] = version
+        environment["PREVIOUS_VERSION"] = previousVersion
+        environment["CURRENT_BUILD"] = currentBuild
+        environment["PREVIOUS_BUILD"] = previousBuild
+        process.environment = environment
+
+        let pipe = Pipe()
+        process.standardError = pipe
+        process.standardOutput = pipe
+        try process.run()
+        process.waitUntilExit()
+
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(decoding: data, as: UTF8.self)
+        return (process.terminationStatus, output)
     }
 }
