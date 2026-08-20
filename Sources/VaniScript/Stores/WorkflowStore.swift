@@ -6927,33 +6927,34 @@ public final class WorkflowStore: ObservableObject {
     }
 
     private func mcpShortsPlanDictionary(_ plan: ShortsClipPlan, index: Int, rejected: Bool) -> [String: Any] {
-        [
-            "id": plan.id,
-            "displayNumber": index + 1,
-            "arrayIndex": index,
-            "rejected": rejected,
-            "start": plan.start,
-            "end": plan.end,
-            "startSec": ShortsPlanner.parseTimestampToSeconds(plan.start),
-            "endSec": ShortsPlanner.parseTimestampToSeconds(plan.end),
-            "title": plan.title,
-            "summary": plan.summary,
-            "hook": plan.hook,
-            "category": plan.category ?? "",
-            "captionText": plan.captionText ?? "",
-            "languageMode": plan.languageMode?.rawValue ?? "",
-            "translationLanguages": plan.translationsByLanguage?.values.map(\.language).sorted() ?? [],
-            "visualEditor": [
-                "cutCount": plan.timelineCuts?.count ?? 0,
-                "sourceSubtitleCount": plan.sourceAlignment?.count ?? 0,
-                "targetSubtitleCount": plan.targetAlignment?.count ?? 0,
-                "sourceTextTrackCount": plan.sourceTextTracks?.count ?? 0,
-                "targetTextTrackCount": plan.targetTextTracks?.count ?? 0,
-                "sourceAudioTrackCount": plan.sourceAudioTracks?.count ?? 0,
-                "targetAudioTrackCount": plan.targetAudioTracks?.count ?? 0,
-                "syncEnabled": plan.syncEnabled ?? true,
-            ],
-        ]
+        var visualEditor: [String: Any] = [:]
+        visualEditor["cutCount"] = plan.timelineCuts?.count ?? 0
+        visualEditor["sourceSubtitleCount"] = plan.sourceAlignment?.count ?? 0
+        visualEditor["targetSubtitleCount"] = plan.targetAlignment?.count ?? 0
+        visualEditor["sourceTextTrackCount"] = plan.sourceTextTracks?.count ?? 0
+        visualEditor["targetTextTrackCount"] = plan.targetTextTracks?.count ?? 0
+        visualEditor["sourceAudioTrackCount"] = plan.sourceAudioTracks?.count ?? 0
+        visualEditor["targetAudioTrackCount"] = plan.targetAudioTracks?.count ?? 0
+        visualEditor["syncEnabled"] = plan.syncEnabled ?? true
+
+        var dict: [String: Any] = [:]
+        dict["id"] = plan.id
+        dict["displayNumber"] = index + 1
+        dict["arrayIndex"] = index
+        dict["rejected"] = rejected
+        dict["start"] = plan.start
+        dict["end"] = plan.end
+        dict["startSec"] = ShortsPlanner.parseTimestampToSeconds(plan.start)
+        dict["endSec"] = ShortsPlanner.parseTimestampToSeconds(plan.end)
+        dict["title"] = plan.title
+        dict["summary"] = plan.summary
+        dict["hook"] = plan.hook
+        dict["category"] = plan.category ?? ""
+        dict["captionText"] = plan.captionText ?? ""
+        dict["languageMode"] = plan.languageMode?.rawValue ?? ""
+        dict["translationLanguages"] = plan.translationsByLanguage?.values.map(\.language).sorted() ?? []
+        dict["visualEditor"] = visualEditor
+        return dict
     }
 
     // MARK: - MCP Visual Editor
