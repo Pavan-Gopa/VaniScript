@@ -5034,17 +5034,15 @@ public final class WorkflowStore: ObservableObject {
     private func persistProjects() {
         let projectsToSave = projects
         let save = projectsPersistence
-        Task.detached(priority: .background) { [weak self] in
+        Task { [weak self] in
             do {
-                try save(projectsToSave)
-                await MainActor.run {
-                    self?.projectSaveFailure = nil
-                }
+                try await Task.detached(priority: .background) {
+                    try save(projectsToSave)
+                }.value
+                self?.projectSaveFailure = nil
             } catch {
-                await MainActor.run {
-                    self?.projectSaveFailure = error.localizedDescription
-                    self?.statusMessage = "Project save failed: \(error.localizedDescription). Your edits are kept in memory and will be retried automatically."
-                }
+                self?.projectSaveFailure = error.localizedDescription
+                self?.statusMessage = "Project save failed: \(error.localizedDescription). Your edits are kept in memory and will be retried automatically."
             }
         }
     }
@@ -5053,16 +5051,16 @@ public final class WorkflowStore: ObservableObject {
         let settingsToSave = workflow.settings
         let save = settingsPersistence
         let previousSave = settingsPersistenceTask
-        let saveTask: Task<Void, Never> = Task.detached(priority: .background) { [weak self] in
+        let saveTask: Task<Void, Never> = Task { [weak self] in
             if let previousSave {
                 await previousSave.value
             }
             do {
-                try save(settingsToSave)
+                try await Task.detached(priority: .background) {
+                    try save(settingsToSave)
+                }.value
             } catch {
-                await MainActor.run {
-                    self?.statusMessage = "Settings save failed: \(error.localizedDescription)"
-                }
+                self?.statusMessage = "Settings save failed: \(error.localizedDescription)"
             }
         }
         settingsPersistenceTask = saveTask

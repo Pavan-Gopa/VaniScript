@@ -740,8 +740,12 @@ final class BatchTranscriptionStore: ObservableObject {
 
     private static func sendNotification(title: String, body: String) async {
         let center = UNUserNotificationCenter.current()
-        let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+        let status: UNAuthorizationStatus = await withCheckedContinuation { continuation in
+            center.getNotificationSettings { settings in
+                continuation.resume(returning: settings.authorizationStatus)
+            }
+        }
+        guard status == .authorized || status == .provisional else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
