@@ -465,35 +465,72 @@ struct UpdateQualificationTests {
         let uploadStepHeader = try #require(source.range(of: "- name: Create draft and upload release assets", range: appcastStepHeader.upperBound..<source.endIndex))
 
         let appcastStep = source[appcastStepHeader.lowerBound..<uploadStepHeader.lowerBound]
-        let curatedCheck = try #require(appcastStep.range(of: "if [[ -f \"docs/releases/VaniScript-$version.md\" ]]; then"))
+        let pipefail = try #require(appcastStep.range(of: "set -euo pipefail"))
+        let keyCheck = try #require(appcastStep.range(of: ": \"${SPARKLE_PRIVATE_ED_KEY:?missing Sparkle private key}\"", range: pipefail.upperBound..<appcastStep.endIndex))
+        let curatedCheck = try #require(appcastStep.range(of: "if [[ -f \"docs/releases/VaniScript-$version.md\" ]]; then", range: keyCheck.upperBound..<appcastStep.endIndex))
         let curatedCopy = try #require(appcastStep.range(of: "cp \"docs/releases/VaniScript-$version.md\" \"dist/VaniScript-$version.md\"", range: curatedCheck.upperBound..<appcastStep.endIndex))
         let fallbackBranch = try #require(appcastStep.range(of: "else", range: curatedCopy.upperBound..<appcastStep.endIndex))
         let fallbackApi = try #require(appcastStep.range(of: "repos/$GITHUB_REPOSITORY/releases/generate-notes", range: fallbackBranch.upperBound..<appcastStep.endIndex))
         let appcastInputCopy = try #require(appcastStep.range(of: "cp \"dist/VaniScript-$version.md\" dist/appcast-input/", range: fallbackApi.upperBound..<appcastStep.endIndex))
-        let generateAppcast = try #require(appcastStep.range(of: "generate_appcast", range: appcastInputCopy.upperBound..<appcastStep.endIndex))
-        let directOutput = try #require(appcastStep.range(of: "-o dist/appcast.xml dist/appcast-input", range: generateAppcast.upperBound..<appcastStep.endIndex))
-        let appcastValidation = try #require(appcastStep.range(of: "test -s dist/appcast.xml", range: directOutput.upperBound..<appcastStep.endIndex))
+        let generateAppcast = try #require(appcastStep.range(of: "printf '%s' \"$SPARKLE_PRIVATE_ED_KEY\" | .build/artifacts/sparkle/Sparkle/bin/generate_appcast --ed-key-file - --download-url-prefix \"https://github.com/Pavan-Gopa/VaniScript/releases/download/$tag/\" -o dist/appcast.xml dist/appcast-input", range: appcastInputCopy.upperBound..<appcastStep.endIndex))
+        let appcastValidation = try #require(appcastStep.range(of: "test -s dist/appcast.xml", range: generateAppcast.upperBound..<appcastStep.endIndex))
+        let signUpdate = try #require(appcastStep.range(of: "printf '%s' \"$SPARKLE_PRIVATE_ED_KEY\" | .build/artifacts/sparkle/Sparkle/bin/sign_update --ed-key-file - dist/appcast.xml", range: appcastValidation.upperBound..<appcastStep.endIndex))
+        let signatureCheck = try #require(appcastStep.range(of: "grep -q '<!-- sparkle-signatures:' dist/appcast.xml", range: signUpdate.upperBound..<appcastStep.endIndex))
 
+        let envLine = try #require(appcastStep.range(of: "SPARKLE_PRIVATE_ED_KEY: ${{ secrets.SPARKLE_PRIVATE_ED_KEY }}"))
+        var keyOccurrences: [Range<String.Index>] = []
+        var keySearchRange: Range<String.Index> = appcastStep.startIndex..<appcastStep.endIndex
+        while let range = appcastStep.range(of: "SPARKLE_PRIVATE_ED_KEY", range: keySearchRange) {
+            keyOccurrences.append(range)
+            keySearchRange = range.upperBound..<appcastStep.endIndex
+        }
+        #expect(keyOccurrences.count == 5)
+        #expect(envLine.contains(keyOccurrences[0].lowerBound))
+        #expect(envLine.contains(keyOccurrences[1].lowerBound))
+        #expect(keyCheck.contains(keyOccurrences[2].lowerBound))
+        #expect(generateAppcast.contains(keyOccurrences[3].lowerBound))
+        #expect(signUpdate.contains(keyOccurrences[4].lowerBound))
+
+        var printfOccurrences: [Range<String.Index>] = []
+        var printfSearchRange: Range<String.Index> = appcastStep.startIndex..<appcastStep.endIndex
+        while let range = appcastStep.range(of: "printf", range: printfSearchRange) {
+            printfOccurrences.append(range)
+            printfSearchRange = range.upperBound..<appcastStep.endIndex
+        }
+        #expect(printfOccurrences.count == 2)
+        #expect(generateAppcast.contains(printfOccurrences[0].lowerBound))
+        #expect(signUpdate.contains(printfOccurrences[1].lowerBound))
+
+        #expect(!appcastStep.contains("set -x"))
+        #expect(!appcastStep.contains("set -o xtrace"))
+        #expect(!appcastStep.contains("echo"))
+
+        #expect(pipefail.lowerBound < keyCheck.lowerBound)
+        #expect(keyCheck.lowerBound < curatedCheck.lowerBound)
         #expect(curatedCheck.lowerBound < curatedCopy.lowerBound)
         #expect(curatedCopy.lowerBound < fallbackBranch.lowerBound)
         #expect(fallbackBranch.lowerBound < fallbackApi.lowerBound)
         #expect(fallbackApi.lowerBound < appcastInputCopy.lowerBound)
         #expect(appcastInputCopy.lowerBound < generateAppcast.lowerBound)
-        #expect(generateAppcast.lowerBound < directOutput.lowerBound)
-        #expect(directOutput.lowerBound < appcastValidation.lowerBound)
+        #expect(generateAppcast.lowerBound < appcastValidation.lowerBound)
+        #expect(appcastValidation.lowerBound < signUpdate.lowerBound)
+        #expect(signUpdate.lowerBound < signatureCheck.lowerBound)
         #expect(!appcastStep.contains("mv dist/appcast-input/appcast.xml"))
         #expect(!source.contains("mv dist/appcast-input/appcast.xml"))
+
         let uploadStep = source[uploadStepHeader.lowerBound..<source.endIndex]
         let releaseCreate = try #require(uploadStep.range(of: "gh release create"))
         let notesFlag = try #require(uploadStep.range(of: "--notes-file \"dist/VaniScript-$version.md\"", range: releaseCreate.upperBound..<uploadStep.endIndex))
         let generalUpload = try #require(uploadStep.range(of: "gh release upload \"$tag\" --repo \"$GITHUB_REPOSITORY\"", range: notesFlag.upperBound..<uploadStep.endIndex))
         let notesUpload = try #require(uploadStep.range(of: "\"dist/VaniScript-$version.md\"", range: generalUpload.upperBound..<uploadStep.endIndex))
         let appcastUpload = try #require(uploadStep.range(of: "gh release upload \"$tag\" --repo \"$GITHUB_REPOSITORY\" dist/appcast.xml", range: notesUpload.upperBound..<uploadStep.endIndex))
+        let postAppcastUploadSuffix = uploadStep[appcastUpload.upperBound..<uploadStep.endIndex]
 
         #expect(releaseCreate.lowerBound < notesFlag.lowerBound)
         #expect(notesFlag.lowerBound < generalUpload.lowerBound)
         #expect(generalUpload.lowerBound < notesUpload.lowerBound)
         #expect(notesUpload.lowerBound < appcastUpload.lowerBound)
+        #expect(!postAppcastUploadSuffix.contains("gh release upload"))
     }
 
     @Test("curated 3.1.0 release notes contain Batch workspace features, 3.0.0 foundation, and update paths")

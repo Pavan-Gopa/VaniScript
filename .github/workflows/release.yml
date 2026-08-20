@@ -191,6 +191,8 @@ jobs:
           cp "dist/VaniScript-$version.md" dist/appcast-input/
           printf '%s' "$SPARKLE_PRIVATE_ED_KEY" | .build/artifacts/sparkle/Sparkle/bin/generate_appcast --ed-key-file - --download-url-prefix "https://github.com/Pavan-Gopa/VaniScript/releases/download/$tag/" -o dist/appcast.xml dist/appcast-input
           test -s dist/appcast.xml
+          printf '%s' "$SPARKLE_PRIVATE_ED_KEY" | .build/artifacts/sparkle/Sparkle/bin/sign_update --ed-key-file - dist/appcast.xml
+          grep -q '<!-- sparkle-signatures:' dist/appcast.xml
 
       - name: Create draft and upload release assets
         env:
